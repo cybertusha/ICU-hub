@@ -1,0 +1,2949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0b111e" />
+  <link rel="manifest" href="/manifest.json" />
+  <title>ICUGuardian — Central Telemetry & Clinical Surveillance</title>
+  <style>
+    :root {
+      --bg-canvas: #f4f6f9;
+      --bg-surface: #ffffff;
+      --bg-subtle: #f8fafc;
+      --bg-muted: #f1f5f9;
+      --bg-hover: #f8fafc;
+      --bg-sidebar: #0b111e;
+      --text-sidebar: #94a3b8;
+      --text-sidebar-active: #ffffff;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --border-strong: #cbd5e1;
+      --accent: #0284c7;
+      --accent-hover: #0369a1;
+      --accent-subtle: #e0f2fe;
+      --primary-btn: #0f172a;
+      --primary-btn-text: #ffffff;
+
+      /* Clinical Acuity Semantics */
+      --normal-text: #15803d;
+      --normal-bg: #f0fdf4;
+      --normal-border: #bbf7d0;
+      --normal-dot: #16a34a;
+
+      --warn-text: #b45309;
+      --warn-bg: #fffbeb;
+      --warn-border: #fde68a;
+      --warn-dot: #d97706;
+
+      --crit-text: #b91c1c;
+      --crit-bg: #fef2f2;
+      --crit-border: #fecaca;
+      --crit-dot: #dc2626;
+      --row-unack: #fffBEB;
+
+      --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    body.dark-theme {
+      --bg-canvas: #070b12;
+      --bg-surface: #0d1421;
+      --bg-subtle: #111a2b;
+      --bg-muted: #172236;
+      --bg-hover: #152033;
+      --bg-sidebar: #060911;
+      --text-primary: #f1f5f9;
+      --text-secondary: #cbd5e1;
+      --text-muted: #64748b;
+      --border: #1e293b;
+      --border-strong: #334155;
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+      --accent-subtle: rgba(56, 189, 248, 0.12);
+      --primary-btn: #0284c7;
+      --primary-btn-text: #ffffff;
+
+      --normal-text: #4ade80;
+      --normal-bg: rgba(22, 163, 74, 0.14);
+      --normal-border: rgba(34, 197, 94, 0.32);
+      --normal-dot: #22c55e;
+
+      --warn-text: #fbbf24;
+      --warn-bg: rgba(217, 119, 6, 0.15);
+      --warn-border: rgba(245, 158, 11, 0.35);
+      --warn-dot: #f59e0b;
+
+      --crit-text: #f87171;
+      --crit-bg: rgba(220, 38, 38, 0.16);
+      --crit-border: rgba(239, 68, 68, 0.42);
+      --crit-dot: #ef4444;
+      --row-unack: rgba(245, 158, 11, 0.06);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-canvas);
+      color: var(--text-primary);
+      min-height: 100vh;
+      font-size: 13.5px;
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .tabular {
+      font-variant-numeric: tabular-nums;
+      font-family: var(--font-mono);
+    }
+
+    /* Authentication View */
+    .auth-shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      background: var(--bg-canvas);
+    }
+    @media (max-width: 920px) {
+      .auth-shell { grid-template-columns: 1fr; }
+      .auth-Hero { display: none !important; }
+    }
+    .auth-Hero {
+      background: #080d18;
+      color: #f8fafc;
+      padding: 48px 56px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border-right: 1px solid #1e293b;
+      position: relative;
+      overflow: hidden;
+    }
+    .auth-Hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(rgba(56, 189, 248, 0.08) 1px, transparent 1px);
+      background-size: 24px 24px;
+      pointer-events: none;
+    }
+    .auth-panel-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      background: var(--bg-surface);
+    }
+    .auth-box {
+      width: 100%;
+      max-width: 390px;
+    }
+
+    /* Form Controls & Buttons */
+    .field { margin-bottom: 14px; }
+    .field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+    }
+    .input, select, textarea {
+      width: 100%;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-strong);
+      border-radius: 6px;
+      padding: 8px 11px;
+      font-size: 13px;
+      color: var(--text-primary);
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.12s, box-shadow 0.12s;
+    }
+    .input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-subtle);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 13px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border-strong);
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      transition: background 0.12s, border-color 0.12s;
+      white-space: nowrap;
+    }
+    .btn:hover { background: var(--bg-muted); }
+    .btn-primary {
+      background: var(--primary-btn);
+      color: var(--primary-btn-text);
+      border-color: var(--primary-btn);
+    }
+    .btn-primary:hover { opacity: 0.92; background: var(--primary-btn); }
+    .btn-danger {
+      background: var(--crit-bg);
+      color: var(--crit-text);
+      border-color: var(--crit-border);
+    }
+    .btn-danger:hover { background: #fee2e2; }
+    .btn-xs { padding: 4px 9px; font-size: 11.5px; border-radius: 5px; }
+
+    /* Application Layout */
+    .app-layout {
+      display: grid;
+      grid-template-columns: 232px 1fr;
+      min-height: 100vh;
+    }
+    @media (max-width: 960px) {
+      .app-layout { grid-template-columns: 1fr; }
+    }
+
+    /* Dark Clinical Navigation Rail */
+    .nav-rail {
+      background: var(--bg-sidebar);
+      color: var(--text-sidebar);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      border-right: 1px solid #1e293b;
+      user-select: none;
+    }
+    .rail-brand {
+      padding: 16px 16px 14px;
+      border-bottom: 1px solid #1e293b;
+    }
+    .rail-brand-row {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 14.5px;
+      letter-spacing: -0.01em;
+    }
+    .brand-mark {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      background: #0284c7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .rail-telemetry-status {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 8px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 5px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+    }
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+    .dot-online { background: #22c55e; box-shadow: 0 0 6px rgba(34, 197, 94, 0.6); }
+    .dot-warn { background: #f59e0b; }
+    .dot-crit { background: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.7); }
+
+    .rail-menu {
+      padding: 12px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .rail-section-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #475569;
+      padding: 8px 10px 4px;
+    }
+    .rail-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: #94a3b8;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: left;
+      transition: color 0.12s, background 0.12s;
+    }
+    .rail-btn-left {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+    .rail-btn:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: #e2e8f0;
+    }
+    .rail-btn.active {
+      background: rgba(56, 189, 248, 0.14);
+      color: #ffffff;
+      font-weight: 600;
+    }
+    .rail-btn.active svg { color: #38bdf8; }
+    .rail-count {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: #dc2626;
+      color: #ffffff;
+    }
+
+    .rail-footer {
+      padding: 12px 14px;
+      border-top: 1px solid #1e293b;
+      background: rgba(0, 0, 0, 0.15);
+    }
+    .clinician-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .initials-badge {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11.5px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      flex-shrink: 0;
+    }
+    .patient-initials {
+      width: 30px;
+      height: 30px;
+      border-radius: 6px;
+      background: var(--bg-muted);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      flex-shrink: 0;
+    }
+
+    /* Workspace Header & Content */
+    .workspace {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .top-bar {
+      height: 52px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .breadcrumb strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    .top-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .content-area {
+      padding: 20px 24px 36px;
+      max-width: 1480px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* Unified Telemetry Metric Strip (Replaces bloated KPI cards) */
+    .metric-strip {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .metric-cell {
+      padding: 12px 16px;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .metric-cell:last-child { border-right: none; }
+    .metric-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .metric-value {
+      font-size: 22px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      margin-top: 4px;
+      line-height: 1.1;
+    }
+
+    /* Panel / Table Container */
+    .surface-panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .panel-toolbar {
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .panel-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .segmented-group {
+      display: inline-flex;
+      background: var(--bg-muted);
+      border: 1px solid var(--border);
+      padding: 2px;
+      border-radius: 6px;
+      gap: 2px;
+    }
+    .seg-btn {
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .seg-btn.active {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+    }
+
+    /* High-Density Clinical Data Table */
+    .table-scroll { width: 100%; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      padding: 10px 14px;
+      background: var(--bg-subtle);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    td {
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+      white-space: nowrap;
+      font-size: 13px;
+    }
+    tbody tr:hover { background: var(--bg-hover); }
+    tbody tr:last-child td { border-bottom: none; }
+    tr.row-critical { border-left: 3px solid var(--crit-dot); }
+    tr.row-warning { border-left: 3px solid var(--warn-dot); }
+    tr.row-normal { border-left: 3px solid transparent; }
+    tr.alert-unack { background: var(--row-unack); }
+
+    /* Clinical Status Pills & Tags */
+    .acuity-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      letter-spacing: 0.03em;
+      border: 1px solid transparent;
+    }
+    .acuity-normal {
+      background: var(--normal-bg);
+      color: var(--normal-text);
+      border-color: var(--normal-border);
+    }
+    .acuity-warning {
+      background: var(--warn-bg);
+      color: var(--warn-text);
+      border-color: var(--warn-border);
+    }
+    .acuity-critical {
+      background: var(--crit-bg);
+      color: var(--crit-text);
+      border-color: var(--crit-border);
+    }
+    .acuity-offline {
+      background: var(--bg-muted);
+      color: var(--text-muted);
+      border-color: var(--border);
+    }
+    .mono-tag {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: var(--bg-muted);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+    .vital-cell-num {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .vital-unit {
+      font-size: 10.5px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-left: 2px;
+    }
+    .val-abnormal { color: var(--crit-text); }
+    .val-normal { color: var(--text-primary); }
+
+    /* Patient Detail Readout Strip (Hospital Monitor Style) */
+    .vital-readout-strip {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      background: #080d18;
+      color: #f8fafc;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    @media (max-width: 900px) {
+      .vital-readout-strip { grid-template-columns: repeat(2, 1fr); }
+    }
+    .readout-tile {
+      padding: 12px 16px;
+      border-right: 1px solid #1e293b;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .readout-tile:last-child { border-right: none; }
+    .readout-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .readout-limits {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: #64748b;
+    }
+    .readout-main {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .readout-number {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-size: 32px;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    /* Sub-Navigation Underline Bar */
+    .subnav-bar {
+      display: flex;
+      gap: 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 16px;
+      overflow-x: auto;
+    }
+    .subnav-tab {
+      padding: 8px 2px 10px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+    }
+    .subnav-tab:hover { color: var(--text-primary); }
+    .subnav-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    /* Switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 36px;
+      height: 20px;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: #cbd5e1;
+      transition: .15s;
+      border-radius: 20px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .15s;
+      border-radius: 50%;
+    }
+    input:checked + .slider { background-color: var(--accent); }
+    input:checked + .slider:before { transform: translateX(16px); }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(9, 13, 22, 0.65);
+      backdrop-filter: blur(2px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+    .modal-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      max-width: 540px;
+      width: 100%;
+      padding: 22px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    #toast-container {
+      position: fixed;
+      bottom: 18px;
+      right: 18px;
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-width: 380px;
+    }
+    .toast {
+      background: #0f172a;
+      color: #f8fafc;
+      border: 1px solid #334155;
+      border-left: 4px solid #38bdf8;
+      border-radius: 6px;
+      padding: 11px 14px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+      font-size: 12.5px;
+    }
+    .toast.critical {
+      border-left-color: #ef4444;
+      background: #450a0a;
+      border-color: #dc2626;
+    }
+  </style>
+</head>
+<body>
+  <div id="toast-container"></div>
+  <div id="app-root"></div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const API_BASE = urlParams.get('api') || localStorage.getItem('icu_cloud_api_url') || (window.location.protocol + '//' + window.location.hostname + ':8000/api');
+    const WS_ENDPOINT = urlParams.get('ws') || localStorage.getItem('icu_cloud_ws_url') || ((window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.hostname + ':8000/ws');
+
+    // Crisp 1.5px Stroke Clinical SVG Icon Library (No Emojis)
+    const ICONS = {
+      pulse: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`,
+      grid: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`,
+      bell: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`,
+      file: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`,
+      users: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+      cpu: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>`,
+      sliders: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>`,
+      help: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+      logout: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`,
+      plus: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+      download: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
+      arrowLeft: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>`,
+      check: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+      external: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`,
+      moon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`
+    };
+
+    const STATE = {
+      user: JSON.parse(localStorage.getItem('icu_user') || 'null'),
+      activePage: 'dashboard',
+      selectedPatientId: 'PATIENT-001',
+      patientViewMode: 'table',
+      patientSearch: '',
+      patientStatusFilter: 'ALL',
+      patientSort: 'bed',
+      detailChartTab: 'heartRate',
+      detailTimeRange: '1',
+      customStart: new Date(Date.now() - 12 * 3600000).toISOString().slice(0, 16),
+      customEnd: new Date().toISOString().slice(0, 16),
+      alertSearch: '',
+      alertTypeFilter: 'ALL',
+      alertCategoryFilter: 'all',
+      alertStatusFilter: 'active',
+      deviceSearch: '',
+      deviceStatusFilter: 'ALL',
+      deviceTab: 'overview',
+      liveDiagnostics: null,
+      userSearch: '',
+      userRoleFilter: 'ALL',
+      settingsTab: 'thresholds',
+      auditLogs: [],
+      helpTab: 'faq',
+      openFaqIndex: 0,
+      darkMode: localStorage.getItem('icu_dark_mode') === 'true',
+      soundEnabled: true,
+      soundVolume: 100,
+      wsConnected: false,
+      patients: [],
+      patientHistory: [],
+      alerts: [],
+      devices: [],
+      users: [],
+      tickets: [],
+      reports: [],
+      selectedReportPatientId: '',
+      reportStartDate: '2026-11-10',
+      reportEndDate: '2026-11-17',
+      reportType: 'Clinical Summary Report',
+      reportSections: ['Vital Signs Data', 'Alert History', 'Care Notes', 'Medication History', 'Trend Charts'],
+      activeReportPreview: null,
+      thresholds: {
+        heartRate: { minNormal: 60, maxNormal: 100, criticalLow: 45, criticalHigh: 120 },
+        bloodPressure: { systolicMin: 90, systolicMax: 140, diastolicMin: 60, diastolicMax: 90 },
+        spo2: { minNormal: 94, criticalLow: 90 },
+        temperature: { minNormal: 36.0, maxNormal: 38.0, criticalHigh: 39.0 },
+        respiratoryRate: { minNormal: 12, maxNormal: 20, criticalLow: 8, criticalHigh: 28 },
+        cooldownSeconds: 30
+      },
+      unsavedSettings: false,
+      modalContent: null
+    };
+
+    if (STATE.darkMode) document.body.classList.add('dark-theme');
+
+    let audioCtx = null;
+    function playMedicalAlarm(severity = 'CRITICAL') {
+      if (!STATE.soundEnabled) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const vol = (STATE.soundVolume / 100) * 0.22;
+        const freqs = severity === 'CRITICAL' ? [880, 987.77, 880, 1174.66] : [659.25, 523.25];
+        freqs.forEach((f, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.value = f;
+          gain.gain.setValueAtTime(vol, audioCtx.currentTime + idx * 0.16);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + idx * 0.16 + 0.14);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(audioCtx.currentTime + idx * 0.16);
+          osc.stop(audioCtx.currentTime + idx * 0.16 + 0.15);
+        });
+      } catch (e) {}
+    }
+
+    function showToast(title, body, severity = 'INFO') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const el = document.createElement('div');
+      el.className = 'toast' + (severity === 'CRITICAL' ? ' critical' : '');
+      el.innerHTML = `<div style="font-weight:700;margin-bottom:2px;">${title}</div><div style="opacity:0.9;">${body}</div>`;
+      container.appendChild(el);
+      setTimeout(() => el.remove(), 4200);
+    }
+
+    // Live Canvas ECG Loop for Individual Patient Page
+    let detailEcgAnimId = null;
+    let detailEcgSweepX = 0;
+    let detailEcgPhase = 0;
+    let detailEcgTrace = null;
+
+    function startDetailEcgCanvas() {
+      const canvas = document.getElementById('detail-ecg-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width;
+      const H = canvas.height;
+      if (!detailEcgTrace || detailEcgTrace.length !== W) {
+        detailEcgTrace = new Array(W).fill(H * 0.62);
+      }
+
+      if (detailEcgAnimId) cancelAnimationFrame(detailEcgAnimId);
+
+      function step() {
+        const currentCanvas = document.getElementById('detail-ecg-canvas');
+        if (!currentCanvas) return;
+        const c = currentCanvas.getContext('2d');
+        const p = STATE.patients.find(x => x.patientId === STATE.selectedPatientId) || STATE.patients[0];
+        const hr = p?.vitals?.heartRate || 74;
+        const status = p?.monitoringStatus || 'NORMAL';
+
+        const bps = Math.max(38, hr) / 60;
+        for (let s = 0; s < 3; s++) {
+          detailEcgPhase = (detailEcgPhase + bps / 65) % 1.0;
+          const pw = 0.15 * Math.exp(-Math.pow(detailEcgPhase - 0.18, 2) / (2 * Math.pow(0.035, 2)));
+          const qw = -0.15 * Math.exp(-Math.pow(detailEcgPhase - 0.35, 2) / (2 * Math.pow(0.012, 2)));
+          const rw = 1.15 * Math.exp(-Math.pow(detailEcgPhase - 0.38, 2) / (2 * Math.pow(0.010, 2)));
+          const sw = -0.28 * Math.exp(-Math.pow(detailEcgPhase - 0.41, 2) / (2 * Math.pow(0.014, 2)));
+          const tw = 0.28 * Math.exp(-Math.pow(detailEcgPhase - 0.65, 2) / (2 * Math.pow(0.048, 2)));
+          const v = pw + qw + rw + sw + tw + (Math.random() - 0.5) * 0.018;
+          detailEcgTrace[detailEcgSweepX] = H * 0.66 - v * (H * 0.46);
+          detailEcgSweepX = (detailEcgSweepX + 1) % W;
+        }
+
+        c.fillStyle = '#060a12';
+        c.fillRect(0, 0, W, H);
+        c.strokeStyle = 'rgba(30, 58, 138, 0.22)';
+        c.lineWidth = 1;
+        for (let gx = 0; gx < W; gx += 24) { c.beginPath(); c.moveTo(gx, 0); c.lineTo(gx, H); c.stroke(); }
+        for (let gy = 0; gy < H; gy += 24) { c.beginPath(); c.moveTo(0, gy); c.lineTo(W, gy); c.stroke(); }
+
+        c.strokeStyle = status === 'CRITICAL' ? '#ef4444' : status === 'WARNING' ? '#f59e0b' : '#10b981';
+        c.lineWidth = 2;
+        c.beginPath();
+        for (let i = 0; i < W; i++) {
+          if (Math.abs(i - detailEcgSweepX) < 14) continue;
+          if (i === 0 || Math.abs(i - 1 - detailEcgSweepX) < 14) c.moveTo(i, detailEcgTrace[i]);
+          else c.lineTo(i, detailEcgTrace[i]);
+        }
+        c.stroke();
+
+        detailEcgAnimId = requestAnimationFrame(step);
+      }
+      detailEcgAnimId = requestAnimationFrame(step);
+    }
+
+    // WebSocket Telemetry Connection
+    let ws = null;
+    function connectWebSocket() {
+      try {
+        ws = new WebSocket(WS_ENDPOINT);
+        ws.onopen = () => {
+          STATE.wsConnected = true;
+          renderApp();
+        };
+        ws.onmessage = (evt) => {
+          try {
+            const msg = JSON.parse(evt.data);
+            if (msg.event === 'INITIAL_SNAPSHOT') {
+              STATE.patients = msg.data.patients || STATE.patients;
+              STATE.alerts = msg.data.alerts || STATE.alerts;
+              STATE.devices = msg.data.devices || STATE.devices;
+              if (msg.data.thresholds) STATE.thresholds = msg.data.thresholds;
+              renderApp();
+            } else if (msg.event === 'VITAL_UPDATE') {
+              const d = msg.data;
+              const idx = STATE.patients.findIndex(p => p.patientId === d.patientId);
+              if (idx !== -1) {
+                STATE.patients[idx].vitals = d.vitals;
+                STATE.patients[idx].monitoringStatus = d.monitoringStatus;
+                STATE.patients[idx].updatedAt = d.timestamp;
+                STATE.patients[idx].deviceStatus = 'ONLINE';
+              }
+              if (STATE.activePage === 'patient-detail' && STATE.selectedPatientId === d.patientId) {
+                STATE.patientHistory.push({
+                  timestamp: d.timestamp,
+                  heartRate: d.vitals.heartRate,
+                  spo2: d.vitals.spo2,
+                  temperature: d.vitals.temperature,
+                  respiratoryRate: d.vitals.respiratoryRate,
+                  systolic: d.vitals.bloodPressure.systolic,
+                  diastolic: d.vitals.bloodPressure.diastolic
+                });
+                if (STATE.patientHistory.length > 60) STATE.patientHistory.shift();
+              }
+              if (!STATE.modalContent) updateLiveDomValues();
+            } else if (msg.event === 'ALERT_NEW') {
+              const al = msg.data;
+              STATE.alerts.unshift(al);
+              const p = STATE.patients.find(x => x.patientId === al.patientId);
+              if (p) p.activeAlertsCount = (p.activeAlertsCount || 0) + 1;
+              if (al.severity === 'CRITICAL') {
+                playMedicalAlarm('CRITICAL');
+                showToast(`CRITICAL ALARM — ${al.patientName} (${al.bedNumber})`, al.description, 'CRITICAL');
+              } else {
+                showToast(`WARNING — ${al.patientName} (${al.bedNumber})`, al.description, 'WARNING');
+              }
+              if (!STATE.modalContent) renderApp();
+            } else if (msg.event === 'PATIENT_UPDATED' || msg.event === 'ALERT_UPDATED' || msg.event === 'ALERTS_BULK_ACKNOWLEDGED' || msg.event === 'PATIENT_RECOVERED') {
+              fetchAllData();
+            } else if (msg.event === 'DEVICE_STATUS') {
+              const dev = msg.data;
+              const idx = STATE.devices.findIndex(x => x.deviceId === dev.deviceId);
+              if (idx !== -1) STATE.devices[idx] = { ...STATE.devices[idx], ...dev };
+              const p = STATE.patients.find(x => x.monitoringDeviceId === dev.deviceId);
+              if (p) p.deviceStatus = dev.deviceStatus;
+              if (!STATE.modalContent && STATE.activePage === 'devices') renderApp();
+            }
+          } catch (e) {}
+        };
+        ws.onclose = () => {
+          STATE.wsConnected = false;
+          setTimeout(connectWebSocket, 2500);
+        };
+      } catch (e) {}
+    }
+
+    async function fetchAllData() {
+      try {
+        const [pRes, aRes, dRes, tRes, uRes, tkRes, rpRes, audRes] = await Promise.all([
+          fetch(`${API_BASE}/patients`).then(r => r.json()),
+          fetch(`${API_BASE}/alerts`).then(r => r.json()),
+          fetch(`${API_BASE}/devices`).then(r => r.json()),
+          fetch(`${API_BASE}/settings/thresholds`).then(r => r.json()),
+          fetch(`${API_BASE}/users`).then(r => r.json()),
+          fetch(`${API_BASE}/tickets`).then(r => r.json()),
+          fetch(`${API_BASE}/reports`).then(r => r.json()),
+          fetch(`${API_BASE}/audit-logs`).then(r => r.json()),
+        ]);
+        STATE.patients = pRes.patients || [];
+        STATE.alerts = aRes.alerts || [];
+        STATE.devices = dRes.devices || [];
+        if (tRes && tRes.heartRate) STATE.thresholds = tRes;
+        STATE.users = uRes.users || [];
+        STATE.tickets = tkRes.tickets || [];
+        STATE.reports = rpRes.reports || [];
+        STATE.auditLogs = audRes.auditLogs || [];
+        if (!STATE.modalContent) renderApp();
+      } catch (e) {}
+    }
+
+    async function loadPatientHistory(patientId, hours = 1, startIso = null, endIso = null) {
+      try {
+        let url = `${API_BASE}/patients/${patientId}/history?hours=${hours}`;
+        if (startIso && endIso) {
+          url += `&start=${encodeURIComponent(new Date(startIso).toISOString())}&end=${encodeURIComponent(new Date(endIso).toISOString())}`;
+        }
+        const res = await fetch(url);
+        const data = await res.json();
+        STATE.patientHistory = data.readings || [];
+        renderApp();
+      } catch (e) {}
+    }
+
+    function initialsOf(name) {
+      return (name || 'PT').split(' ').map(s => s[0]).join('').slice(0, 3).toUpperCase();
+    }
+
+    function formatTimeAgo(iso) {
+      if (!iso) return 'Just now';
+      const diffSec = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+      if (diffSec < 10) return 'Live';
+      if (diffSec < 60) return `${diffSec}s ago`;
+      const mins = Math.floor(diffSec / 60);
+      if (mins < 60) return `${mins}m ago`;
+      return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function updateLiveDomValues() {
+      if (STATE.activePage === 'patient-detail') {
+        const p = STATE.patients.find(x => x.patientId === STATE.selectedPatientId) || STATE.patients[0];
+        if (!p || !p.vitals) return;
+        const v = p.vitals;
+        const bp = v.bloodPressure || { systolic: 120, diastolic: 80 };
+        const mapVal = Math.round(bp.diastolic + (bp.systolic - bp.diastolic) / 3);
+        const stLower = (p.monitoringStatus || 'NORMAL').toLowerCase();
+
+        const elHr = document.getElementById('detail-val-hr');
+        const elSpo2 = document.getElementById('detail-val-spo2');
+        const elBp = document.getElementById('detail-val-bp');
+        const elMap = document.getElementById('detail-val-map');
+        const elTemp = document.getElementById('detail-val-temp');
+        const elRr = document.getElementById('detail-val-rr');
+        const elPill = document.getElementById('detail-acuity-pill');
+        const elChart = document.getElementById('detail-trend-chart-wrap');
+
+        if (elHr) elHr.textContent = v.heartRate;
+        if (elSpo2) elSpo2.textContent = v.spo2;
+        if (elBp) elBp.textContent = `${bp.systolic}/${bp.diastolic}`;
+        if (elMap) elMap.textContent = `(${mapVal})`;
+        if (elTemp) elTemp.textContent = Number(v.temperature).toFixed(1);
+        if (elRr) elRr.textContent = v.respiratoryRate;
+        if (elPill) {
+          elPill.textContent = p.monitoringStatus;
+          elPill.className = `acuity-pill acuity-${stLower}`;
+        }
+        if (elChart) {
+          elChart.innerHTML = buildTrendChartSvg(STATE.patientHistory, STATE.detailChartTab);
+        }
+        return;
+      }
+
+      if (STATE.activePage === 'dashboard') {
+        const normalCount = STATE.patients.filter(p => p.monitoringStatus === 'NORMAL').length;
+        const warningCount = STATE.patients.filter(p => p.monitoringStatus === 'WARNING').length;
+        const criticalCount = STATE.patients.filter(p => p.monitoringStatus === 'CRITICAL').length;
+        const elCrit = document.getElementById('census-crit');
+        const elWarn = document.getElementById('census-warn');
+        const elNorm = document.getElementById('census-norm');
+        if (elCrit) elCrit.textContent = criticalCount;
+        if (elWarn) elWarn.textContent = warningCount;
+        if (elNorm) elNorm.textContent = normalCount;
+
+        STATE.patients.forEach(p => {
+          const v = p.vitals || {};
+          const bp = v.bloodPressure || { systolic: 120, diastolic: 80 };
+          const mapVal = Math.round(bp.diastolic + (bp.systolic - bp.diastolic) / 3);
+          const stLower = (p.monitoringStatus || 'NORMAL').toLowerCase();
+          const hrAbn = v.heartRate > STATE.thresholds.heartRate.maxNormal || v.heartRate < STATE.thresholds.heartRate.minNormal;
+          const spo2Abn = v.spo2 < STATE.thresholds.spo2.minNormal;
+          const bpAbn = bp.systolic > 140 || bp.systolic < 90;
+          const tempAbn = v.temperature > STATE.thresholds.temperature.maxNormal || v.temperature < STATE.thresholds.temperature.minNormal;
+          const rrAbn = v.respiratoryRate > STATE.thresholds.respiratoryRate.maxNormal || v.respiratoryRate < STATE.thresholds.respiratoryRate.minNormal;
+
+          const rHr = document.getElementById(`row-hr-${p.patientId}`);
+          const rSpo2 = document.getElementById(`row-spo2-${p.patientId}`);
+          const rBp = document.getElementById(`row-bp-${p.patientId}`);
+          const rMap = document.getElementById(`row-map-${p.patientId}`);
+          const rTemp = document.getElementById(`row-temp-${p.patientId}`);
+          const rRr = document.getElementById(`row-rr-${p.patientId}`);
+          const rSync = document.getElementById(`row-sync-${p.patientId}`);
+          const rSt = document.getElementById(`row-status-${p.patientId}`);
+          const rTr = document.getElementById(`row-tr-${p.patientId}`);
+
+          if (rHr) { rHr.textContent = v.heartRate ?? '--'; rHr.className = `vital-cell-num ${hrAbn ? 'val-abnormal' : 'val-normal'}`; }
+          if (rSpo2) { rSpo2.textContent = v.spo2 ?? '--'; rSpo2.className = `vital-cell-num ${spo2Abn ? 'val-abnormal' : 'val-normal'}`; }
+          if (rBp) { rBp.textContent = `${bp.systolic}/${bp.diastolic}`; rBp.className = `vital-cell-num ${bpAbn ? 'val-abnormal' : 'val-normal'}`; }
+          if (rMap) rMap.textContent = `(${mapVal})`;
+          if (rTemp) { rTemp.textContent = Number(v.temperature || 36.7).toFixed(1); rTemp.className = `vital-cell-num ${tempAbn ? 'val-abnormal' : 'val-normal'}`; }
+          if (rRr) { rRr.textContent = v.respiratoryRate ?? '--'; rRr.className = `vital-cell-num ${rrAbn ? 'val-abnormal' : 'val-normal'}`; }
+          if (rSync) rSync.textContent = formatTimeAgo(p.updatedAt);
+          if (rSt) {
+            rSt.className = `acuity-pill acuity-${stLower}`;
+            rSt.innerHTML = `<span class="status-dot ${stLower === 'critical' ? 'dot-crit' : stLower === 'warning' ? 'dot-warn' : 'dot-online'}"></span>${p.monitoringStatus}`;
+          }
+          if (rTr) rTr.className = `row-${stLower}`;
+        });
+      }
+    }
+
+    async function handleLogin(username, password, role) {
+      try {
+        const res = await fetch(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password, role })
+        });
+        if (!res.ok) {
+          showToast('Authentication Failed', 'Invalid hospital username or password.', 'CRITICAL');
+          return;
+        }
+        const user = await res.json();
+        STATE.user = user;
+        localStorage.setItem('icu_user', JSON.stringify(user));
+        STATE.activePage = 'dashboard';
+        await fetchAllData();
+      } catch (e) {
+        showToast('Connection Error', 'Cloud Backend API on port 8000 is unreachable.', 'CRITICAL');
+      }
+    }
+
+    function handleLogout() {
+      STATE.user = null;
+      localStorage.removeItem('icu_user');
+      renderApp();
+    }
+
+    async function toggleGatewayMaintenance(deviceId, offline) {
+      try {
+        const res = await fetch(`${API_BASE}/devices/${deviceId}/maintenance`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ offline })
+        });
+        const data = await res.json();
+        if (offline) {
+          showToast(`Gateway ${deviceId} Offline Buffer Enabled`, 'Storing bedside telemetry in local SQLite WAL storage.', 'WARNING');
+        } else {
+          const synced = data.gatewayResponse?.syncedMessages ?? 0;
+          showToast(`Gateway ${deviceId} Online`, `Synchronized ${synced} queued SQLite readings to cloud.`);
+        }
+        await fetchAllData();
+      } catch (e) {}
+    }
+
+    async function runGatewayDiagnostics(deviceId) {
+      try {
+        const res = await fetch(`${API_BASE}/devices/${deviceId}/diagnostics`);
+        const diag = await res.json();
+        STATE.liveDiagnostics = diag;
+        STATE.deviceTab = 'diagnostics';
+        showToast(`Diagnostics Complete (${deviceId})`, `SoC Temp: ${diag.hostMetrics?.cpuTempC}°C | RTT: ${diag.network?.rttLatencyMs ?? '--'} ms`);
+        renderApp();
+      } catch (e) {
+        showToast('Diagnostics Error', 'Could not reach edge gateway diagnostic endpoint.', 'CRITICAL');
+      }
+    }
+
+    async function flushGatewayQueue(deviceId) {
+      try {
+        const res = await fetch(`${API_BASE}/devices/${deviceId}/flush-queue`, { method: 'POST' });
+        const data = await res.json();
+        showToast('Edge Queue Flushed', `Synchronized ${data.syncedMessages || 0} buffered readings (Remaining: ${data.offlineQueueSize || 0})`);
+        await fetchAllData();
+      } catch (e) {}
+    }
+
+    async function ackAlert(alertId) {
+      await fetch(`${API_BASE}/alerts/${alertId}/acknowledge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userName: STATE.user?.fullName || 'Dr. Sarah Smith' })
+      });
+      await fetchAllData();
+    }
+
+    async function ackAllAlerts() {
+      await fetch(`${API_BASE}/alerts/acknowledge-all`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userName: STATE.user?.fullName || 'Dr. Sarah Smith' })
+      });
+      showToast('All Alarms Acknowledged', `Acknowledged by ${STATE.user?.fullName || 'Clinician'}`);
+      await fetchAllData();
+    }
+
+    async function resolveAlertById(alertId) {
+      await fetch(`${API_BASE}/alerts/${alertId}/resolve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userName: STATE.user?.fullName || 'Dr. Sarah Smith' })
+      });
+      showToast('Alarm Resolved', `Alert ${alertId} archived to clinical audit log.`);
+      await fetchAllData();
+    }
+
+    function openPatientMonitor(patientId) {
+      STATE.selectedPatientId = patientId;
+      STATE.activePage = 'patient-detail';
+      loadPatientHistory(patientId, Number(STATE.detailTimeRange) || 1);
+    }
+
+    async function togglePatientAlerts(patientId, enabled) {
+      await fetch(`${API_BASE}/patients/${patientId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ alertsEnabled: enabled, actor: STATE.user?.fullName || 'Dr. Sarah Smith' })
+      });
+      showToast('Patient Alarm Setting Updated', `Threshold alarms ${enabled ? 'ENABLED' : 'MUTED'} for ${patientId}`);
+      await fetchAllData();
+    }
+
+    async function submitClinicalNote(patientId, form) {
+      const note = form.noteText.value.trim();
+      if (!note) return;
+      await fetch(`${API_BASE}/patients/${patientId}/notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          author: STATE.user?.fullName || 'Dr. Sarah Smith',
+          role: STATE.user?.role || 'Doctor',
+          note
+        })
+      });
+      form.reset();
+      showToast('Clinical Note Recorded', 'Progress note appended to patient medical chart.');
+      await fetchAllData();
+    }
+
+    function openAdmitPatientModal() {
+      const nextNum = STATE.patients.length + 1;
+      STATE.modalContent = `
+        <div style="font-size:16px;font-weight:700;margin-bottom:4px;">Admit Patient to ICU Telemetry</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">Register patient demographics and bind a bedside Raspberry Pi acquisition gateway.</div>
+        <form onsubmit="event.preventDefault(); submitAdmitPatient(this);">
+          <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px;">
+            <div class="field"><label>Patient Full Name</label><input class="input" name="patientName" placeholder="e.g., David Miller" required /></div>
+            <div class="field"><label>Medical Record # (MRN)</label><input class="input tabular" name="mrn" value="MRN-${482910 + nextNum}" required /></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;">
+            <div class="field"><label>Age</label><input type="number" class="input tabular" name="age" value="56" required /></div>
+            <div class="field"><label>Sex</label><select class="input" name="gender"><option value="M">M</option><option value="F">F</option></select></div>
+            <div class="field"><label>Bed Assignment</label><input class="input tabular" name="bedNumber" value="ICU-0${nextNum}" required /></div>
+            <div class="field"><label>Gateway Node</label><input class="input tabular" name="monitoringDeviceId" value="ICU-PI-00${nextNum}" required /></div>
+          </div>
+          <div class="field"><label>Primary Clinical Diagnosis</label><input class="input" name="condition" placeholder="Post-operative hemodynamic monitoring" required /></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="field"><label>Attending Physician</label><input class="input" name="attendingPhysician" value="${STATE.user?.role === 'Doctor' ? STATE.user.fullName : 'Dr. Sarah Smith'}" required /></div>
+            <div class="field"><label>Primary ICU Nurse</label><input class="input" name="primaryNurse" value="Nurse Michael Jones" required /></div>
+          </div>
+          <div class="field"><label>Allergies (comma-separated)</label><input class="input" name="allergies" placeholder="Penicillin, Latex" /></div>
+          <div class="field"><label>Active Infusions / Medications (comma-separated)</label><input class="input" name="currentMedications" placeholder="Normal Saline 100mL/hr, Propofol 30mcg/kg/min" /></div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid var(--border);">
+            <button type="button" class="btn" onclick="STATE.modalContent=null;renderApp();">Cancel</button>
+            <button type="submit" class="btn btn-primary">Admit & Bind Telemetry</button>
+          </div>
+        </form>
+      `;
+      renderApp();
+    }
+
+    async function submitAdmitPatient(form) {
+      await fetch(`${API_BASE}/patients`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patientName: form.patientName.value,
+          mrn: form.mrn.value,
+          age: Number(form.age.value),
+          gender: form.gender.value,
+          bedNumber: form.bedNumber.value,
+          monitoringDeviceId: form.monitoringDeviceId.value,
+          condition: form.condition.value,
+          attendingPhysician: form.attendingPhysician.value,
+          primaryNurse: form.primaryNurse.value,
+          allergies: form.allergies.value,
+          currentMedications: form.currentMedications.value,
+          actor: STATE.user?.fullName || 'Dr. Sarah Smith'
+        })
+      });
+      STATE.modalContent = null;
+      showToast('Patient Admitted', `Assigned ${form.patientName.value} to ${form.bedNumber.value}`);
+      await fetchAllData();
+    }
+
+    function openEditPatientModal(patientId) {
+      const p = STATE.patients.find(x => x.patientId === patientId);
+      if (!p) return;
+      STATE.modalContent = `
+        <div style="font-size:16px;font-weight:700;margin-bottom:14px;">Update Clinical Chart — ${p.patientName} (${p.bedNumber})</div>
+        <form onsubmit="event.preventDefault(); submitEditPatient('${p.patientId}', this);">
+          <div class="field"><label>Primary Diagnosis / Condition</label><input class="input" name="condition" value="${p.condition}" required /></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="field"><label>Attending Physician</label><input class="input" name="attendingPhysician" value="${p.attendingPhysician}" required /></div>
+            <div class="field"><label>Primary Nurse</label><input class="input" name="primaryNurse" value="${p.primaryNurse}" required /></div>
+          </div>
+          <div class="field"><label>Known Allergies (comma-separated)</label><input class="input" name="allergies" value="${(p.allergies || []).join(', ')}" /></div>
+          <div class="field"><label>Active Infusions / Medications (comma-separated)</label><input class="input" name="currentMedications" value="${(p.currentMedications || []).join(', ')}" /></div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+            <button type="button" class="btn" onclick="STATE.modalContent=null;renderApp();">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+          </div>
+        </form>
+      `;
+      renderApp();
+    }
+
+    async function submitEditPatient(patientId, form) {
+      await fetch(`${API_BASE}/patients/${patientId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          condition: form.condition.value,
+          attendingPhysician: form.attendingPhysician.value,
+          primaryNurse: form.primaryNurse.value,
+          allergies: form.allergies.value,
+          currentMedications: form.currentMedications.value,
+          actor: STATE.user?.fullName || 'Dr. Sarah Smith'
+        })
+      });
+      STATE.modalContent = null;
+      showToast('Chart Updated', `Updated clinical profile for ${patientId}`);
+      await fetchAllData();
+    }
+
+    function exportPatientData(patientId) {
+      const p = STATE.patients.find(x => x.patientId === patientId) || STATE.patients[0];
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        exportedBy: STATE.user?.fullName || 'Dr. Sarah Smith',
+        patient: p,
+        recentHistory: STATE.patientHistory
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${p.patientId}_${p.bedNumber}_telemetry_record.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Export Complete', `Downloaded ${p.patientName} clinical telemetry archive.`);
+    }
+
+    // AUTHENTICATION VIEW (Institutional Healthcare Portal Design)
+    function renderLogin() {
+      return `
+        <div class="auth-shell">
+          <div class="auth-Hero">
+            <div>
+              <div style="display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;">
+                <span class="brand-mark">${ICONS.pulse}</span>
+                <span>ICUGuardian</span>
+                <span style="font-family:var(--font-mono);font-size:11px;color:#38bdf8;background:rgba(56,189,248,0.12);padding:2px 7px;border-radius:4px;">v2.1 CLINICAL</span>
+              </div>
+              <div style="margin-top:48px;max-width:460px;">
+                <div style="font-size:11px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.1em;color:#38bdf8;margin-bottom:10px;">
+                  Central Telemetry & Critical Care Surveillance
+                </div>
+                <h1 style="font-size:30px;font-weight:700;line-height:1.22;letter-spacing:-0.02em;color:#ffffff;">
+                  Continuous multi-bed physiological waveform & acuity surveillance.
+                </h1>
+                <p style="margin-top:16px;color:#94a3b8;font-size:14px;line-height:1.6;">
+                  Direct HL7 v2.6 MLLP & IEEE 11073 bedside acquisition via Raspberry Pi 5 edge gateways with SQLite WAL store-and-forward resilience and AWS IoT Core TLS streaming.
+                </p>
+              </div>
+            </div>
+
+            <div style="border-top:1px solid #1e293b;padding-top:20px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;font-size:12px;">
+              <div>
+                <div style="color:#64748b;font-size:11px;">EDGE TRANSPORT</div>
+                <div style="color:#e2e8f0;font-family:var(--font-mono);margin-top:2px;">MQTT / TLS 1.2 (8883)</div>
+              </div>
+              <div>
+                <div style="color:#64748b;font-size:11px;">BEDSIDE INTERFACE</div>
+                <div style="color:#e2e8f0;font-family:var(--font-mono);margin-top:2px;">HL7 MLLP (TCP 2575)</div>
+              </div>
+              <div>
+                <div style="color:#64748b;font-size:11px;">AUTH & AUDIT</div>
+                <div style="color:#e2e8f0;font-family:var(--font-mono);margin-top:2px;">PBKDF2-SHA256 + JWT</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="auth-panel-wrap">
+            <div class="auth-box">
+              <div style="margin-bottom:24px;">
+                <div style="font-size:20px;font-weight:700;letter-spacing:-0.01em;">Clinician Sign In</div>
+                <div style="color:var(--text-muted);font-size:13px;margin-top:4px;">Authenticate with your hospital directory credentials</div>
+              </div>
+
+              <form onsubmit="event.preventDefault(); handleLogin(this.username.value, this.password.value, this.role.value);">
+                <div class="field">
+                  <label>Clinical Role Preset</label>
+                  <select name="role" class="input" onchange="if(this.value==='Doctor'){this.form.username.value='sarah.smith';this.form.password.value='doctor123';}else if(this.value==='Nurse'){this.form.username.value='michael.jones';this.form.password.value='nurse123';}else{this.form.username.value='lisa.wilson';this.form.password.value='admin123';}">
+                    <option value="Doctor">Attending Physician — Cardiology ICU</option>
+                    <option value="Nurse">Critical Care Nurse — Ward A</option>
+                    <option value="Admin">Clinical Engineering / System Admin</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Username or Institutional ID</label>
+                  <input class="input tabular" name="username" value="sarah.smith" required />
+                </div>
+                <div class="field">
+                  <label>Password</label>
+                  <input class="input" type="password" name="password" value="doctor123" required />
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%;padding:9px 14px;margin-top:8px;">
+                  Access Central Station
+                </button>
+              </form>
+
+              <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);font-size:11.5px;color:var(--text-muted);display:flex;justify-content:space-between;">
+                <span>Session: 12h HMAC-JWT</span>
+                <span class="tabular">TLS 1.2 / FIPS-140</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // LEFT NAVIGATION RAIL
+    function renderSidebar() {
+      const role = STATE.user?.role || 'Doctor';
+      const onlineDevs = STATE.devices.filter(d => d.deviceStatus === 'ONLINE').length;
+      const totalDevs = STATE.devices.length || 7;
+      const hasIssues = onlineDevs < 4 || !STATE.wsConnected;
+      const unackCount = STATE.alerts.filter(a => !a.acknowledged && !a.resolved).length;
+
+      const clinicalNav = [
+        { id: 'dashboard', label: 'Unit Census & Live', icon: ICONS.grid, roles: ['Doctor', 'Nurse', 'Admin'] },
+        { id: 'alerts', label: 'Alarm Surveillance', icon: ICONS.bell, badge: unackCount > 0 ? unackCount : null, roles: ['Doctor', 'Nurse', 'Admin'] },
+        { id: 'reports', label: 'Clinical Reports', icon: ICONS.file, roles: ['Doctor', 'Admin'] },
+      ].filter(i => i.roles.includes(role));
+
+      const opsNav = [
+        { id: 'devices', label: 'Edge Gateways', icon: ICONS.cpu, roles: ['Admin', 'Doctor'] },
+        { id: 'users', label: 'Staff Directory', icon: ICONS.users, roles: ['Admin'] },
+        { id: 'settings', label: 'Station Settings', icon: ICONS.sliders, roles: ['Doctor', 'Nurse', 'Admin'] },
+        { id: 'help', label: 'Biomed Support', icon: ICONS.help, roles: ['Doctor', 'Nurse', 'Admin'] },
+      ].filter(i => i.roles.includes(role));
+
+      return `
+        <aside class="nav-rail">
+          <div>
+            <div class="rail-brand">
+              <div class="rail-brand-row">
+                <span class="brand-mark">${ICONS.pulse}</span>
+                <span>ICUGuardian</span>
+              </div>
+              <div class="rail-telemetry-status">
+                <span style="display:flex;align-items:center;gap:6px;color:${hasIssues ? '#fbbf24' : '#cbd5e1'};">
+                  <span class="status-dot ${hasIssues ? 'dot-warn' : 'dot-online'}"></span>
+                  <span>${STATE.wsConnected ? 'WS STREAM LIVE' : 'RECONNECTING'}</span>
+                </span>
+                <span style="color:#64748b;">${onlineDevs}/${totalDevs} GW</span>
+              </div>
+            </div>
+
+            <div class="rail-menu">
+              <div class="rail-section-label">Clinical Views</div>
+              ${clinicalNav.map(item => `
+                <button class="rail-btn ${(STATE.activePage === item.id || (STATE.activePage === 'patient-detail' && item.id === 'dashboard')) ? 'active' : ''}"
+                        onclick="STATE.activePage='${item.id}'; renderApp();">
+                  <span class="rail-btn-left">${item.icon}<span>${item.label}</span></span>
+                  ${item.badge ? `<span class="rail-count">${item.badge}</span>` : ''}
+                </button>
+              `).join('')}
+
+              <div class="rail-section-label" style="margin-top:8px;">Infrastructure & Admin</div>
+              ${opsNav.map(item => `
+                <button class="rail-btn ${STATE.activePage === item.id ? 'active' : ''}"
+                        onclick="STATE.activePage='${item.id}'; renderApp();">
+                  <span class="rail-btn-left">${item.icon}<span>${item.label}</span></span>
+                </button>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="rail-footer">
+            <div class="clinician-row">
+              <div class="initials-badge">${STATE.user?.initials || 'DSS'}</div>
+              <div style="overflow:hidden;">
+                <div style="font-weight:600;font-size:12.5px;color:#f8fafc;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;">
+                  ${STATE.user?.fullName || 'Dr. Sarah Smith'}
+                </div>
+                <div style="font-size:11px;color:#64748b;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;">
+                  ${STATE.user?.role || 'Doctor'} • ${STATE.user?.department || 'ICU'}
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-xs" style="width:100%;background:#151f32;border-color:#26354d;color:#cbd5e1;" onclick="handleLogout()">
+              ${ICONS.logout}<span>End Shift / Sign Out</span>
+            </button>
+          </div>
+        </aside>
+      `;
+    }
+
+    // TOP UTILITY BAR
+    function renderTopBar() {
+      const pageTitles = {
+        'dashboard': 'ICU Ward A & B — Live Patient Census',
+        'patient-detail': `Patient Telemetry Chart — ${STATE.selectedPatientId}`,
+        'alerts': 'Clinical Alarm Surveillance & Escalation Log',
+        'reports': 'Health Record Summary & Export Builder',
+        'users': 'Hospital Staff Access & Role Directory',
+        'devices': 'Bedside Raspberry Pi 5 Gateway Fleet',
+        'settings': 'Threshold Rules, Audio & Security Audit',
+        'help': 'Clinical Engineering Support & Documentation'
+      };
+      return `
+        <header class="top-bar">
+          <div class="breadcrumb">
+            <span>Central Station</span>
+            <span>/</span>
+            <strong>${pageTitles[STATE.activePage] || 'Live Dashboard'}</strong>
+          </div>
+          <div class="top-bar-right">
+            <a href="http://${window.location.hostname}:3001" target="_blank" class="btn btn-xs" style="text-decoration:none;">
+              ${ICONS.external}<span>Bedside Monitor (:3001)</span>
+            </a>
+            <a href="http://${window.location.hostname}:5050" target="_blank" class="btn btn-xs" style="text-decoration:none;">
+              ${ICONS.external}<span>Pi 5 Gateway (:5050)</span>
+            </a>
+            <button class="btn btn-xs" onclick="STATE.darkMode=!STATE.darkMode; localStorage.setItem('icu_dark_mode', STATE.darkMode); document.body.classList.toggle('dark-theme', STATE.darkMode); renderApp();">
+              ${ICONS.moon}<span>${STATE.darkMode ? 'Light UI' : 'Dark Console'}</span>
+            </button>
+          </div>
+        </header>
+      `;
+    }
+
+    // PAGE 1: ICU LIVE DASHBOARD
+    function renderDashboardPage() {
+      const total = STATE.patients.length;
+      const normalCount = STATE.patients.filter(p => p.monitoringStatus === 'NORMAL').length;
+      const warningCount = STATE.patients.filter(p => p.monitoringStatus === 'WARNING').length;
+      const criticalCount = STATE.patients.filter(p => p.monitoringStatus === 'CRITICAL').length;
+      const onlinePiCount = STATE.patients.filter(p => p.deviceStatus === 'ONLINE').length;
+
+      let filtered = STATE.patients.filter(p => {
+        const q = STATE.patientSearch.toLowerCase();
+        const matchQ = !q || p.patientName.toLowerCase().includes(q) || p.bedNumber.toLowerCase().includes(q) || p.patientId.toLowerCase().includes(q) || (p.mrn || '').toLowerCase().includes(q);
+        const matchS = STATE.patientStatusFilter === 'ALL' || p.monitoringStatus === STATE.patientStatusFilter;
+        return matchQ && matchS;
+      });
+
+      if (STATE.patientSort === 'bed') {
+        filtered.sort((a, b) => a.bedNumber.localeCompare(b.bedNumber));
+      } else if (STATE.patientSort === 'status') {
+        const order = { CRITICAL: 1, WARNING: 2, NORMAL: 3 };
+        filtered.sort((a, b) => (order[a.monitoringStatus] || 9) - (order[b.monitoringStatus] || 9));
+      } else {
+        filtered.sort((a, b) => a.patientName.localeCompare(b.patientName));
+      }
+
+      return `
+        <!-- Compact Unified Clinical Census Strip -->
+        <div class="metric-strip">
+          <div class="metric-cell">
+            <div class="metric-label"><span>Active ICU Census</span><span class="mono-tag">WARD A/B</span></div>
+            <div class="metric-value">${total} <span style="font-size:12px;font-weight:500;color:var(--text-muted);">beds occupied</span></div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-label"><span>Critical Acuity</span><span class="status-dot dot-crit"></span></div>
+            <div class="metric-value" id="census-crit" style="color:var(--crit-text);">${criticalCount}</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-label"><span>Watch / Warning</span><span class="status-dot dot-warn"></span></div>
+            <div class="metric-value" id="census-warn" style="color:var(--warn-text);">${warningCount}</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-label"><span>Hemodynamically Stable</span><span class="status-dot dot-online"></span></div>
+            <div class="metric-value" id="census-norm" style="color:var(--normal-text);">${normalCount}</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-label"><span>Bedside Gateways</span><span class="mono-tag">ETH0/MQTT</span></div>
+            <div class="metric-value">${onlinePiCount}<span style="font-size:14px;color:var(--text-muted);">/${total || 6}</span></div>
+          </div>
+        </div>
+
+        <div class="surface-panel">
+          <!-- Integrated Table Control Bar -->
+          <div class="panel-toolbar">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex:1;">
+              <input class="input" style="max-width:260px;padding:6px 10px;font-size:12.5px;"
+                     placeholder="Filter by patient, MRN, or bed..."
+                     value="${STATE.patientSearch}"
+                     oninput="STATE.patientSearch=this.value; renderApp();" />
+
+              <div class="segmented-group">
+                <button class="seg-btn ${STATE.patientStatusFilter === 'ALL' ? 'active' : ''}" onclick="STATE.patientStatusFilter='ALL';renderApp();">All (${total})</button>
+                <button class="seg-btn ${STATE.patientStatusFilter === 'CRITICAL' ? 'active' : ''}" onclick="STATE.patientStatusFilter='CRITICAL';renderApp();">Critical (${criticalCount})</button>
+                <button class="seg-btn ${STATE.patientStatusFilter === 'WARNING' ? 'active' : ''}" onclick="STATE.patientStatusFilter='WARNING';renderApp();">Warning (${warningCount})</button>
+                <button class="seg-btn ${STATE.patientStatusFilter === 'NORMAL' ? 'active' : ''}" onclick="STATE.patientStatusFilter='NORMAL';renderApp();">Stable (${normalCount})</button>
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <select class="input" style="width:auto;padding:5px 10px;font-size:12px;" onchange="STATE.patientSort=this.value; renderApp();">
+                <option value="bed" ${STATE.patientSort === 'bed' ? 'selected' : ''}>Sort: Bed Number</option>
+                <option value="status" ${STATE.patientSort === 'status' ? 'selected' : ''}>Sort: Acuity Level</option>
+                <option value="name" ${STATE.patientSort === 'name' ? 'selected' : ''}>Sort: Patient Name</option>
+              </select>
+
+              <div class="segmented-group">
+                <button class="seg-btn ${STATE.patientViewMode === 'table' ? 'active' : ''}" onclick="STATE.patientViewMode='table';renderApp();">Flowsheet</button>
+                <button class="seg-btn ${STATE.patientViewMode === 'cards' ? 'active' : ''}" onclick="STATE.patientViewMode='cards';renderApp();">Monitor Grid</button>
+              </div>
+
+              <button class="btn btn-xs btn-primary" onclick="openAdmitPatientModal()">
+                ${ICONS.plus}<span>Admit Patient</span>
+              </button>
+            </div>
+          </div>
+
+          ${STATE.patientViewMode === 'table' ? `
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Bed</th>
+                    <th>Patient & MRN</th>
+                    <th>Acuity Status</th>
+                    <th>HR <span style="font-weight:400;">(60–100)</span></th>
+                    <th>SpO₂ <span style="font-weight:400;">(≥94%)</span></th>
+                    <th>NIBP <span style="font-weight:400;">(mmHg)</span></th>
+                    <th>Temp <span style="font-weight:400;">(°C)</span></th>
+                    <th>Resp <span style="font-weight:400;">(/min)</span></th>
+                    <th>Active Alarms</th>
+                    <th>Gateway Node</th>
+                    <th>Last Sync</th>
+                    <th style="text-align:right;">Chart</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${filtered.map(p => {
+                    const v = p.vitals || {};
+                    const bp = v.bloodPressure || { systolic: 120, diastolic: 80 };
+                    const mapVal = Math.round(bp.diastolic + (bp.systolic - bp.diastolic) / 3);
+                    const hrAbn = v.heartRate > STATE.thresholds.heartRate.maxNormal || v.heartRate < STATE.thresholds.heartRate.minNormal;
+                    const spo2Abn = v.spo2 < STATE.thresholds.spo2.minNormal;
+                    const bpAbn = bp.systolic > 140 || bp.systolic < 90;
+                    const tempAbn = v.temperature > STATE.thresholds.temperature.maxNormal || v.temperature < STATE.thresholds.temperature.minNormal;
+                    const rrAbn = v.respiratoryRate > STATE.thresholds.respiratoryRate.maxNormal || v.respiratoryRate < STATE.thresholds.respiratoryRate.minNormal;
+                    const stLower = p.monitoringStatus.toLowerCase();
+                    return `
+                      <tr id="row-tr-${p.patientId}" class="row-${stLower}">
+                        <td><span class="mono-tag">${p.bedNumber}</span></td>
+                        <td>
+                          <div style="display:flex;align-items:center;gap:9px;">
+                            <div class="patient-initials">${initialsOf(p.patientName)}</div>
+                            <div>
+                              <div style="font-weight:600;color:var(--text-primary);cursor:pointer;" onclick="openPatientMonitor('${p.patientId}')">${p.patientName}</div>
+                              <div style="font-size:11.5px;color:var(--text-muted);" class="tabular">${p.mrn || p.patientId} • ${p.age}y ${p.gender}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <span id="row-status-${p.patientId}" class="acuity-pill acuity-${stLower}">
+                            <span class="status-dot ${stLower === 'critical' ? 'dot-crit' : stLower === 'warning' ? 'dot-warn' : 'dot-online'}"></span>
+                            ${p.monitoringStatus}
+                          </span>
+                        </td>
+                        <td><span id="row-hr-${p.patientId}" class="vital-cell-num ${hrAbn ? 'val-abnormal' : 'val-normal'}">${v.heartRate ?? '--'}</span><span class="vital-unit">bpm</span></td>
+                        <td><span id="row-spo2-${p.patientId}" class="vital-cell-num ${spo2Abn ? 'val-abnormal' : 'val-normal'}">${v.spo2 ?? '--'}</span><span class="vital-unit">%</span></td>
+                        <td>
+                          <span id="row-bp-${p.patientId}" class="vital-cell-num ${bpAbn ? 'val-abnormal' : 'val-normal'}">${bp.systolic}/${bp.diastolic}</span>
+                          <span id="row-map-${p.patientId}" class="vital-unit">(${mapVal})</span>
+                        </td>
+                        <td><span id="row-temp-${p.patientId}" class="vital-cell-num ${tempAbn ? 'val-abnormal' : 'val-normal'}">${Number(v.temperature || 36.7).toFixed(1)}</span><span class="vital-unit">°C</span></td>
+                        <td><span id="row-rr-${p.patientId}" class="vital-cell-num ${rrAbn ? 'val-abnormal' : 'val-normal'}">${v.respiratoryRate ?? '--'}</span><span class="vital-unit">/m</span></td>
+                        <td>
+                          ${p.activeAlertsCount > 0
+                            ? `<span class="acuity-pill acuity-critical" style="cursor:pointer;" onclick="STATE.activePage='alerts';renderApp();">${p.activeAlertsCount} ACTIVE</span>`
+                            : `<span style="color:var(--text-muted);font-size:12px;">—</span>`}
+                        </td>
+                        <td>
+                          <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-family:var(--font-mono);">
+                            <span class="status-dot ${p.deviceStatus === 'ONLINE' ? 'dot-online' : 'dot-crit'}"></span>
+                            <span>${p.monitoringDeviceId}</span>
+                          </span>
+                        </td>
+                        <td id="row-sync-${p.patientId}" class="tabular" style="color:var(--text-muted);font-size:12px;">${formatTimeAgo(p.updatedAt)}</td>
+                        <td style="text-align:right;">
+                          <button class="btn btn-xs" onclick="openPatientMonitor('${p.patientId}')">Telemetry →</button>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          ` : `
+            <!-- Central Station Multi-Bed Telemetry Grid -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(350px,1fr));gap:14px;padding:16px;">
+              ${filtered.map(p => {
+                const v = p.vitals || {};
+                const bp = v.bloodPressure || { systolic: 120, diastolic: 80 };
+                const stLower = p.monitoringStatus.toLowerCase();
+                return `
+                  <div class="surface-panel" style="border-left:3px solid ${stLower === 'critical' ? 'var(--crit-dot)' : stLower === 'warning' ? 'var(--warn-dot)' : 'var(--normal-dot)'};">
+                    <div style="padding:11px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg-subtle);">
+                      <div>
+                        <span class="mono-tag" style="margin-right:6px;">${p.bedNumber}</span>
+                        <strong style="font-size:13.5px;cursor:pointer;" onclick="openPatientMonitor('${p.patientId}')">${p.patientName}</strong>
+                        <span style="font-size:11.5px;color:var(--text-muted);margin-left:4px;">${p.age}${p.gender}</span>
+                      </div>
+                      <span class="acuity-pill acuity-${stLower}">${p.monitoringStatus}</span>
+                    </div>
+
+                    <!-- Mini Dark Waveform Strip -->
+                    <div style="background:#060a12;padding:8px 12px;border-bottom:1px solid #1e293b;">
+                      <div style="display:flex;justify-content:space-between;font-size:10px;font-family:var(--font-mono);color:#64748b;margin-bottom:4px;">
+                        <span style="color:#10b981;">II • 25mm/s</span>
+                        <span>${p.monitoringDeviceId} (${p.deviceStatus})</span>
+                      </div>
+                      <svg viewBox="0 0 320 42" style="width:100%;height:38px;display:block;">
+                        <polyline fill="none" stroke="${stLower === 'critical' ? '#ef4444' : '#10b981'}" stroke-width="1.6"
+                          points="0,28 18,28 24,20 30,28 40,28 44,34 49,5 54,38 59,28 74,28 82,18 90,28 115,28 130,28 136,20 142,28 152,28 156,34 161,5 166,38 171,28 186,28 194,18 202,28 230,28 245,28 251,20 257,28 267,28 271,34 276,5 281,38 286,28 300,28 320,28" />
+                      </svg>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:repeat(4,1fr);background:#090f1b;color:#f8fafc;padding:10px 12px;font-family:var(--font-mono);">
+                      <div>
+                        <div style="font-size:10px;color:#10b981;">HR</div>
+                        <div id="row-hr-${p.patientId}" style="font-size:19px;font-weight:700;">${v.heartRate}</div>
+                      </div>
+                      <div>
+                        <div style="font-size:10px;color:#38bdf8;">SpO₂</div>
+                        <div style="font-size:19px;font-weight:700;"><span id="row-spo2-${p.patientId}">${v.spo2}</span>%</div>
+                      </div>
+                      <div>
+                        <div style="font-size:10px;color:#f97316;">NIBP</div>
+                        <div id="row-bp-${p.patientId}" style="font-size:16px;font-weight:700;">${bp.systolic}/${bp.diastolic}</div>
+                      </div>
+                      <div>
+                        <div style="font-size:10px;color:#f59e0b;">TEMP / RR</div>
+                        <div style="font-size:14px;font-weight:700;"><span id="row-temp-${p.patientId}">${Number(v.temperature || 36.7).toFixed(1)}</span>° • <span id="row-rr-${p.patientId}">${v.respiratoryRate}</span></div>
+                      </div>
+                    </div>
+
+                    <div style="padding:8px 12px;display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:var(--text-muted);">
+                      <span>${p.condition}</span>
+                      <button class="btn btn-xs" onclick="openPatientMonitor('${p.patientId}')">Open Chart</button>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `}
+        </div>
+      `;
+    }
+
+    // SVG Trend Chart Helper
+    function buildTrendChartSvg(readings, metricKey) {
+      const W = 740, H = 220, padL = 42, padR = 16, padT = 16, padB = 26;
+      const pts = (readings && readings.length > 1) ? readings : [
+        { timestamp: new Date(Date.now() - 3600000).toISOString(), heartRate: 72, spo2: 98, temperature: 36.6, respiratoryRate: 16, systolic: 120 },
+        { timestamp: new Date().toISOString(), heartRate: 74, spo2: 97, temperature: 36.7, respiratoryRate: 17, systolic: 122 }
+      ];
+
+      const metaMap = {
+        heartRate: { label: 'Heart Rate', unit: 'bpm', min: 50, max: 145, color: '#10b981', field: 'heartRate' },
+        spo2: { label: 'SpO₂ Saturation', unit: '%', min: 82, max: 100, color: '#0284c7', field: 'spo2' },
+        bloodPressure: { label: 'Systolic NIBP', unit: 'mmHg', min: 75, max: 165, color: '#f97316', field: 'systolic' },
+        temperature: { label: 'Core Temperature', unit: '°C', min: 35.5, max: 40.5, color: '#d97706', field: 'temperature' },
+        respiratoryRate: { label: 'Respiratory Rate', unit: '/min', min: 8, max: 36, color: '#6366f1', field: 'respiratoryRate' }
+      };
+      const cfg = metaMap[metricKey] || metaMap.heartRate;
+      const values = pts.map(r => Number(r[cfg.field] ?? 75));
+      const minY = Math.min(cfg.min, ...values);
+      const maxY = Math.max(cfg.max, ...values);
+
+      const coords = values.map((val, idx) => {
+        const x = padL + (idx / Math.max(1, values.length - 1)) * (W - padL - padR);
+        const y = padT + (1 - (val - minY) / Math.max(1, maxY - minY)) * (H - padT - padB);
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      });
+
+      const yTicks = [0, 0.25, 0.5, 0.75, 1].map(t => {
+        const val = (maxY - t * (maxY - minY)).toFixed(metricKey === 'temperature' ? 1 : 0);
+        const y = padT + t * (H - padT - padB);
+        return `
+          <line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="var(--border)" stroke-dasharray="3 3" stroke-width="1" />
+          <text x="${padL - 8}" y="${y + 4}" text-anchor="end" font-size="10.5" font-family="var(--font-mono)" fill="var(--text-muted)">${val}</text>
+        `;
+      }).join('');
+
+      return `
+        <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:220px;display:block;">
+          ${yTicks}
+          <polyline fill="none" stroke="${cfg.color}" stroke-width="2" points="${coords.join(' ')}" />
+        </svg>
+      `;
+    }
+
+    // PAGE 2: INDIVIDUAL PATIENT TELEMETRY CHART (Epic / IntelliSpace Style)
+    function renderPatientDetailPage() {
+      const p = STATE.patients.find(x => x.patientId === STATE.selectedPatientId) || STATE.patients[0];
+      if (!p) return `<div class="surface-panel" style="padding:20px;">Loading patient record...</div>`;
+      const v = p.vitals || { heartRate: 73, spo2: 97, temperature: 36.6, respiratoryRate: 17, bloodPressure: { systolic: 126, diastolic: 84 }, ecg: [] };
+      const bp = v.bloodPressure || { systolic: 126, diastolic: 84 };
+      const mapVal = Math.round(bp.diastolic + (bp.systolic - bp.diastolic) / 3);
+      const patientAlerts = STATE.alerts.filter(a => a.patientId === p.patientId && !a.resolved);
+      const notes = p.careNotes || [];
+      const stLower = p.monitoringStatus.toLowerCase();
+
+      return `
+        <!-- Clinical Patient Header Banner -->
+        <div class="surface-panel" style="padding:14px 18px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;">
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+            <button class="btn btn-xs" onclick="STATE.activePage='dashboard'; renderApp();">
+              ${ICONS.arrowLeft}<span>Unit Census</span>
+            </button>
+            <div style="border-left:1px solid var(--border);padding-left:14px;">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <span class="mono-tag">${p.bedNumber}</span>
+                <span style="font-size:18px;font-weight:700;">${p.patientName}</span>
+                <span class="mono-tag">${p.mrn || p.patientId}</span>
+                <span id="detail-acuity-pill" class="acuity-pill acuity-${stLower}">${p.monitoringStatus}</span>
+                ${(p.allergies || []).map(al => `<span class="acuity-pill acuity-critical">ALLERGY: ${al}</span>`).join('')}
+              </div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">
+                <span>${p.age}y ${p.gender}</span> •
+                <span><strong>Dx:</strong> ${p.condition}</span> •
+                <span><strong>Attending:</strong> ${p.attendingPhysician}</span> •
+                <span><strong>RN:</strong> ${p.primaryNurse}</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-xs" onclick="openEditPatientModal('${p.patientId}')">Edit Chart</button>
+            <button class="btn btn-xs ${p.alertsEnabled ? '' : 'btn-danger'}" onclick="togglePatientAlerts('${p.patientId}', ${!p.alertsEnabled})">
+              ${ICONS.bell}<span>${p.alertsEnabled ? 'Alarms Armed' : 'Alarms Muted'}</span>
+            </button>
+            <button class="btn btn-xs" onclick="exportPatientData('${p.patientId}')">
+              ${ICONS.download}<span>Export JSON</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Unified Dark Hospital Monitor Vital Readout Strip -->
+        <div class="vital-readout-strip">
+          <div class="readout-tile">
+            <div class="readout-header">
+              <span style="color:#10b981;">ECG / Heart Rate</span>
+              <span class="readout-limits">${STATE.thresholds.heartRate.minNormal}–${STATE.thresholds.heartRate.maxNormal}</span>
+            </div>
+            <div class="readout-main">
+              <span id="detail-val-hr" class="readout-number" style="color:#10b981;">${v.heartRate}</span>
+              <span style="font-size:11px;color:#64748b;font-family:var(--font-mono);">bpm</span>
+            </div>
+          </div>
+
+          <div class="readout-tile">
+            <div class="readout-header">
+              <span style="color:#38bdf8;">SpO₂ Arterial</span>
+              <span class="readout-limits">≥${STATE.thresholds.spo2.minNormal}%</span>
+            </div>
+            <div class="readout-main">
+              <span id="detail-val-spo2" class="readout-number" style="color:#38bdf8;">${v.spo2}</span>
+              <span style="font-size:11px;color:#64748b;font-family:var(--font-mono);">%</span>
+            </div>
+          </div>
+
+          <div class="readout-tile">
+            <div class="readout-header">
+              <span style="color:#f97316;">NIBP (MAP)</span>
+              <span class="readout-limits">${STATE.thresholds.bloodPressure.systolicMin}–${STATE.thresholds.bloodPressure.systolicMax}</span>
+            </div>
+            <div class="readout-main">
+              <span id="detail-val-bp" class="readout-number" style="color:#f97316;font-size:26px;">${bp.systolic}/${bp.diastolic}</span>
+              <span id="detail-val-map" style="font-size:11px;color:#94a3b8;font-family:var(--font-mono);">(${mapVal})</span>
+            </div>
+          </div>
+
+          <div class="readout-tile">
+            <div class="readout-header">
+              <span style="color:#fbbf24;">Core Temp (T1)</span>
+              <span class="readout-limits">${STATE.thresholds.temperature.minNormal}–${STATE.thresholds.temperature.maxNormal}</span>
+            </div>
+            <div class="readout-main">
+              <span id="detail-val-temp" class="readout-number" style="color:#fbbf24;">${Number(v.temperature).toFixed(1)}</span>
+              <span style="font-size:11px;color:#64748b;font-family:var(--font-mono);">°C</span>
+            </div>
+          </div>
+
+          <div class="readout-tile">
+            <div class="readout-header">
+              <span style="color:#a78bfa;">Resp Rate</span>
+              <span class="readout-limits">${STATE.thresholds.respiratoryRate.minNormal}–${STATE.thresholds.respiratoryRate.maxNormal}</span>
+            </div>
+            <div class="readout-main">
+              <span id="detail-val-rr" class="readout-number" style="color:#a78bfa;">${v.respiratoryRate}</span>
+              <span style="font-size:11px;color:#64748b;font-family:var(--font-mono);">/min</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:2.2fr 1fr;gap:16px;">
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <!-- Live Sweeping Lead II ECG Canvas -->
+            <div class="surface-panel" style="background:#060a12;border-color:#1e293b;padding:12px 14px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:11px;font-family:var(--font-mono);color:#94a3b8;">
+                <span style="color:#10b981;font-weight:700;">LEAD II ECG WAVEFORM • 25 mm/s • 10 mm/mV • 0.5–40 Hz</span>
+                <span>EDGE NODE: ${p.monitoringDeviceId} (${p.deviceIp}) • ${p.deviceStatus}</span>
+              </div>
+              <canvas id="detail-ecg-canvas" width="760" height="125" style="width:100%;height:125px;display:block;border-radius:4px;"></canvas>
+            </div>
+
+            <!-- Historical Trend Graph Panel -->
+            <div class="surface-panel">
+              <div class="panel-toolbar">
+                <div class="segmented-group">
+                  <button class="seg-btn ${STATE.detailChartTab === 'heartRate' ? 'active' : ''}" onclick="STATE.detailChartTab='heartRate';renderApp();">Heart Rate</button>
+                  <button class="seg-btn ${STATE.detailChartTab === 'spo2' ? 'active' : ''}" onclick="STATE.detailChartTab='spo2';renderApp();">SpO₂</button>
+                  <button class="seg-btn ${STATE.detailChartTab === 'bloodPressure' ? 'active' : ''}" onclick="STATE.detailChartTab='bloodPressure';renderApp();">Systolic BP</button>
+                  <button class="seg-btn ${STATE.detailChartTab === 'temperature' ? 'active' : ''}" onclick="STATE.detailChartTab='temperature';renderApp();">Core Temp</button>
+                  <button class="seg-btn ${STATE.detailChartTab === 'respiratoryRate' ? 'active' : ''}" onclick="STATE.detailChartTab='respiratoryRate';renderApp();">Resp Rate</button>
+                </div>
+
+                <div class="segmented-group">
+                  <button class="seg-btn ${STATE.detailTimeRange === '1' ? 'active' : ''}" onclick="STATE.detailTimeRange='1';loadPatientHistory('${p.patientId}',1);">1H</button>
+                  <button class="seg-btn ${STATE.detailTimeRange === '6' ? 'active' : ''}" onclick="STATE.detailTimeRange='6';loadPatientHistory('${p.patientId}',6);">6H</button>
+                  <button class="seg-btn ${STATE.detailTimeRange === '24' ? 'active' : ''}" onclick="STATE.detailTimeRange='24';loadPatientHistory('${p.patientId}',24);">24H</button>
+                  <button class="seg-btn ${STATE.detailTimeRange === 'custom' ? 'active' : ''}" onclick="STATE.detailTimeRange='custom';renderApp();">Range</button>
+                </div>
+              </div>
+
+              <div style="padding:14px 16px;">
+                ${STATE.detailTimeRange === 'custom' ? `
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+                    <input type="datetime-local" class="input tabular" style="width:auto;padding:5px 8px;font-size:12px;" value="${STATE.customStart}" onchange="STATE.customStart=this.value;" />
+                    <span style="color:var(--text-muted);font-size:12px;">to</span>
+                    <input type="datetime-local" class="input tabular" style="width:auto;padding:5px 8px;font-size:12px;" value="${STATE.customEnd}" onchange="STATE.customEnd=this.value;" />
+                    <button class="btn btn-xs btn-primary" onclick="loadPatientHistory('${p.patientId}', 24, STATE.customStart, STATE.customEnd)">Load Window</button>
+                  </div>
+                ` : ''}
+                <div id="detail-trend-chart-wrap">${buildTrendChartSvg(STATE.patientHistory, STATE.detailChartTab)}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Active Alarms, Infusions & Clinical Notes -->
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div class="surface-panel">
+              <div class="panel-toolbar">
+                <span class="panel-title">Active Bedside Alarms (${patientAlerts.length})</span>
+              </div>
+              <div style="padding:12px 14px;">
+                ${patientAlerts.length === 0
+                  ? `<div style="color:var(--text-muted);font-size:12.5px;">No active threshold violations for this patient.</div>`
+                  : patientAlerts.slice(0, 4).map(a => `
+                    <div style="border-left:3px solid ${a.severity === 'CRITICAL' ? 'var(--crit-dot)' : 'var(--warn-dot)'};padding:6px 10px;background:var(--bg-subtle);margin-bottom:8px;border-radius:0 4px 4px 0;">
+                      <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <strong style="font-size:12.5px;">${a.description}</strong>
+                        <span class="acuity-pill acuity-${a.severity.toLowerCase()}">${a.severity}</span>
+                      </div>
+                      <div class="tabular" style="font-size:11px;color:var(--text-muted);margin-top:3px;">
+                        Measured: ${a.detectedValue} | Limit: ${a.threshold}
+                      </div>
+                    </div>
+                  `).join('')}
+              </div>
+            </div>
+
+            <div class="surface-panel">
+              <div class="panel-toolbar">
+                <span class="panel-title">Active Infusions & MAR</span>
+              </div>
+              <div style="padding:12px 14px;display:flex;flex-direction:column;gap:6px;">
+                ${(p.currentMedications || []).map(med => `
+                  <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:5px;font-size:12.5px;">
+                    <span style="font-weight:500;">${med}</span>
+                    <span class="mono-tag" style="font-size:10px;">ACTIVE</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            <div class="surface-panel">
+              <div class="panel-toolbar">
+                <span class="panel-title">Clinical Progress Notes (${notes.length})</span>
+              </div>
+              <div style="padding:12px 14px;">
+                <form onsubmit="event.preventDefault(); submitClinicalNote('${p.patientId}', this);" style="display:flex;gap:6px;margin-bottom:10px;">
+                  <input class="input" style="padding:6px 10px;font-size:12.5px;" name="noteText" placeholder="Record clinical observation..." required />
+                  <button type="submit" class="btn btn-xs btn-primary">Post</button>
+                </form>
+                <div style="display:flex;flex-direction:column;gap:8px;max-height:210px;overflow-y:auto;">
+                  ${notes.length === 0 ? `<div style="color:var(--text-muted);font-size:12px;">No progress notes logged.</div>` : notes.map(n => `
+                    <div style="padding:8px 10px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:5px;">
+                      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:3px;">
+                        <strong style="color:var(--text-primary);">${n.author} (${n.role})</strong>
+                        <span class="tabular">${formatTimeAgo(n.createdAt)}</span>
+                      </div>
+                      <div style="font-size:12.5px;">${n.note}</div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // PAGE 3: ALARM SURVEILLANCE
+    function renderAlertsPage() {
+      const total = STATE.alerts.length;
+      const critCount = STATE.alerts.filter(a => a.severity === 'CRITICAL' && !a.resolved).length;
+      const warnCount = STATE.alerts.filter(a => a.severity === 'WARNING' && !a.resolved).length;
+      const unackCount = STATE.alerts.filter(a => !a.acknowledged && !a.resolved).length;
+      const activeCount = STATE.alerts.filter(a => !a.resolved).length;
+
+      const filtered = STATE.alerts.filter(a => {
+        const q = STATE.alertSearch.toLowerCase();
+        const matchQ = !q || a.patientName.toLowerCase().includes(q) || a.bedNumber.toLowerCase().includes(q) || a.description.toLowerCase().includes(q);
+        const matchT = STATE.alertTypeFilter === 'ALL' || a.severity === STATE.alertTypeFilter;
+        const matchC = STATE.alertCategoryFilter === 'all' || a.category === STATE.alertCategoryFilter;
+        let matchS = true;
+        if (STATE.alertStatusFilter === 'active') matchS = !a.resolved;
+        else if (STATE.alertStatusFilter === 'unacknowledged') matchS = !a.acknowledged && !a.resolved;
+        else if (STATE.alertStatusFilter === 'acknowledged') matchS = a.acknowledged && !a.resolved;
+        else if (STATE.alertStatusFilter === 'resolved') matchS = a.resolved;
+        return matchQ && matchT && matchC && matchS;
+      });
+
+      return `
+        <div class="metric-strip">
+          <div class="metric-cell">
+            <div class="metric-label"><span>Unacknowledged</span><span class="status-dot dot-crit"></span></div>
+            <div class="metric-value" style="color:var(--crit-text);">${unackCount}</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-label"><span>Active Critical</span></div>
+            <div class="metric-value" style="color:var(--crit-text);">${critCount}</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-label"><span>Active Warning</span></div>
+            <div class="metric-value" style="color:var(--warn-text);">${warnCount}</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-label"><span>Total Active</span></div>
+            <div class="metric-value">${activeCount}</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-label"><span>Historical Log</span></div>
+            <div class="metric-value" style="color:var(--text-muted);">${total}</div>
+          </div>
+        </div>
+
+        <div class="surface-panel">
+          <div class="panel-toolbar">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex:1;">
+              <input class="input" style="max-width:250px;padding:6px 10px;font-size:12.5px;"
+                     placeholder="Filter alarms by patient or bed..."
+                     value="${STATE.alertSearch}"
+                     oninput="STATE.alertSearch=this.value; renderApp();" />
+
+              <div class="segmented-group">
+                <button class="seg-btn ${STATE.alertStatusFilter === 'active' ? 'active' : ''}" onclick="STATE.alertStatusFilter='active';renderApp();">Active (${activeCount})</button>
+                <button class="seg-btn ${STATE.alertStatusFilter === 'unacknowledged' ? 'active' : ''}" onclick="STATE.alertStatusFilter='unacknowledged';renderApp();">Unack (${unackCount})</button>
+                <button class="seg-btn ${STATE.alertStatusFilter === 'acknowledged' ? 'active' : ''}" onclick="STATE.alertStatusFilter='acknowledged';renderApp();">Ack</button>
+                <button class="seg-btn ${STATE.alertStatusFilter === 'resolved' ? 'active' : ''}" onclick="STATE.alertStatusFilter='resolved';renderApp();">Resolved</button>
+                <button class="seg-btn ${STATE.alertStatusFilter === 'all' ? 'active' : ''}" onclick="STATE.alertStatusFilter='all';renderApp();">All</button>
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:8px;">
+              <select class="input" style="width:auto;padding:5px 10px;font-size:12px;" onchange="STATE.alertTypeFilter=this.value; renderApp();">
+                <option value="ALL" ${STATE.alertTypeFilter === 'ALL' ? 'selected' : ''}>All Severities</option>
+                <option value="CRITICAL" ${STATE.alertTypeFilter === 'CRITICAL' ? 'selected' : ''}>Critical Only</option>
+                <option value="WARNING" ${STATE.alertTypeFilter === 'WARNING' ? 'selected' : ''}>Warning Only</option>
+              </select>
+              <button class="btn btn-xs" onclick="playMedicalAlarm('CRITICAL')">Test Audio Tone</button>
+              <button class="btn btn-xs btn-primary" onclick="ackAllAlerts()">
+                ${ICONS.check}<span>Acknowledge All (${unackCount})</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Priority</th>
+                  <th>Bed & Patient</th>
+                  <th>Severity</th>
+                  <th>Domain</th>
+                  <th>Clinical Alarm Condition</th>
+                  <th>Measured vs. Limit</th>
+                  <th>Triggered</th>
+                  <th>State</th>
+                  <th style="text-align:right;">Disposition</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filtered.map(a => {
+                  const sevLower = a.severity.toLowerCase();
+                  return `
+                    <tr class="row-${sevLower} ${!a.acknowledged && !a.resolved ? 'alert-unack' : ''}">
+                      <td class="tabular" style="font-weight:700;">P${a.priority}</td>
+                      <td>
+                        <span class="mono-tag" style="margin-right:6px;">${a.bedNumber}</span>
+                        <strong style="cursor:pointer;" onclick="openPatientMonitor('${a.patientId}')">${a.patientName}</strong>
+                      </td>
+                      <td><span class="acuity-pill acuity-${sevLower}">${a.severity}</span></td>
+                      <td><span class="mono-tag">${a.category}</span></td>
+                      <td>
+                        <span style="font-weight:600;">${a.description}</span>
+                        ${a.recoveredAt ? `<span class="acuity-pill acuity-normal" style="margin-left:6px;">RECOVERED</span>` : ''}
+                      </td>
+                      <td class="tabular">
+                        <strong>${a.detectedValue}</strong> <span style="color:var(--text-muted);">(${a.threshold})</span>
+                      </td>
+                      <td class="tabular" style="color:var(--text-muted);font-size:12px;">
+                        ${new Date(a.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      </td>
+                      <td>
+                        ${a.resolved
+                          ? `<span class="acuity-pill acuity-normal">RESOLVED</span><div style="font-size:10.5px;color:var(--text-muted);">${a.resolvedBy || 'Clinician'}</div>`
+                          : a.acknowledged
+                          ? `<span class="mono-tag">ACK</span><div style="font-size:10.5px;color:var(--text-muted);">${a.acknowledgedBy || 'Staff'}</div>`
+                          : `<span class="acuity-pill acuity-critical">UNACKNOWLEDGED</span>`}
+                      </td>
+                      <td style="text-align:right;">
+                        <div style="display:inline-flex;gap:6px;">
+                          ${!a.acknowledged && !a.resolved ? `<button class="btn btn-xs" onclick="ackAlert('${a.alertId}')">Ack</button>` : ''}
+                          ${!a.resolved ? `<button class="btn btn-xs btn-primary" onclick="resolveAlertById('${a.alertId}')">Resolve</button>` : ''}
+                        </div>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    // PAGE 4: CLINICAL REPORTS
+    async function handleGenerateReport() {
+      const pid = STATE.selectedReportPatientId || 'PATIENT-001';
+      const res = await fetch(`${API_BASE}/reports`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patientId: pid,
+          reportType: STATE.reportType,
+          dateRange: `${STATE.reportStartDate} to ${STATE.reportEndDate}`,
+          sections: STATE.reportSections,
+          generatedBy: STATE.user?.fullName || 'Dr. Sarah Smith'
+        })
+      });
+      const rpt = await res.json();
+      STATE.activeReportPreview = rpt;
+      STATE.reports.unshift(rpt);
+      showToast('Report Compiled', `Generated ${rpt.reportId} for ${rpt.patientName}`);
+      renderApp();
+    }
+
+    function renderReportsPage() {
+      const rpt = STATE.activeReportPreview;
+      return `
+        <div style="display:grid;grid-template-columns:360px 1fr;gap:16px;">
+          <div class="surface-panel" style="padding:18px;">
+            <div style="font-size:14px;font-weight:700;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);">
+              Clinical Report Parameters
+            </div>
+
+            <div class="field">
+              <label>Target Patient</label>
+              <select class="input" onchange="STATE.selectedReportPatientId=this.value; renderApp();">
+                <option value="">Select ICU patient...</option>
+                ${STATE.patients.map(p => `
+                  <option value="${p.patientId}" ${STATE.selectedReportPatientId === p.patientId ? 'selected' : ''}>
+                    ${p.bedNumber} — ${p.patientName} (${p.mrn || p.patientId})
+                  </option>
+                `).join('')}
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Observation Window</label>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <input type="date" class="input tabular" value="${STATE.reportStartDate}" onchange="STATE.reportStartDate=this.value;" />
+                <input type="date" class="input tabular" value="${STATE.reportEndDate}" onchange="STATE.reportEndDate=this.value;" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Document Format</label>
+              <select class="input" onchange="STATE.reportType=this.value;">
+                <option value="Clinical Summary Report" ${STATE.reportType === 'Clinical Summary Report' ? 'selected' : ''}>Shift Hand-off & Vitals Summary</option>
+                <option value="Detailed Vitals Audit" ${STATE.reportType === 'Detailed Vitals Audit' ? 'selected' : ''}>24-Hour Hemodynamic Flowsheet</option>
+                <option value="Critical Alert Summary" ${STATE.reportType === 'Critical Alert Summary' ? 'selected' : ''}>Alarm Escalation Audit</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Included Chart Sections</label>
+              <div style="display:flex;flex-direction:column;gap:6px;margin-top:6px;font-size:12.5px;">
+                ${['Vital Signs Data', 'Alert History', 'Care Notes', 'Medication History', 'Trend Charts'].map(sec => `
+                  <label style="display:flex;align-items:center;gap:8px;font-weight:500;cursor:pointer;">
+                    <input type="checkbox" checked /><span>${sec}</span>
+                  </label>
+                `).join('')}
+              </div>
+            </div>
+
+            <button class="btn btn-primary" style="width:100%;margin-top:10px;" onclick="handleGenerateReport()">
+              Compile Clinical Report
+            </button>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div class="surface-panel">
+              <div class="panel-toolbar">
+                <span class="panel-title">Document Preview</span>
+                ${rpt ? `<button class="btn btn-xs" onclick="exportPatientData('${rpt.patientId}')">${ICONS.download}<span>Export Archive</span></button>` : ''}
+              </div>
+              <div style="padding:20px;">
+                ${!rpt ? `
+                  <div style="padding:40px 20px;text-align:center;color:var(--text-muted);font-size:13px;">
+                    Select a patient and click <strong>Compile Clinical Report</strong> to generate a structured telemetry summary.
+                  </div>
+                ` : `
+                  <div style="border:1px solid var(--border);border-radius:6px;padding:18px;background:var(--bg-subtle);">
+                    <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:14px;">
+                      <div>
+                        <div style="font-size:16px;font-weight:700;">${rpt.patientName} <span class="mono-tag">${rpt.summary.mrn || rpt.patientId}</span></div>
+                        <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${rpt.reportType} • Period: ${rpt.dateRange}</div>
+                      </div>
+                      <span class="mono-tag">${rpt.reportId}</span>
+                    </div>
+                    <div class="metric-strip" style="margin-bottom:14px;">
+                      <div class="metric-cell"><div class="metric-label">Mean HR</div><div class="metric-value" style="font-size:18px;">${rpt.summary.avgHeartRate} bpm</div></div>
+                      <div class="metric-cell"><div class="metric-label">Nadir SpO₂</div><div class="metric-value" style="font-size:18px;">${rpt.summary.minSpo2}%</div></div>
+                      <div class="metric-cell"><div class="metric-label">Peak Temp</div><div class="metric-value" style="font-size:18px;">${rpt.summary.maxTemp} °C</div></div>
+                      <div class="metric-cell"><div class="metric-label">Total Alarms</div><div class="metric-value" style="font-size:18px;">${rpt.summary.totalAlerts}</div></div>
+                    </div>
+                    <div style="font-size:12.5px;line-height:1.6;">
+                      <div><strong>Primary Diagnosis:</strong> ${rpt.summary.condition}</div>
+                      <div><strong>Attending Physician:</strong> ${rpt.summary.attendingPhysician} • <strong>Primary RN:</strong> ${rpt.summary.primaryNurse || 'Nurse Michael Jones'}</div>
+                      <div><strong>Samples Analyzed:</strong> ${rpt.summary.totalReadings} validated telemetry frames</div>
+                    </div>
+                  </div>
+                `}
+              </div>
+            </div>
+
+            <div class="surface-panel">
+              <div class="panel-toolbar"><span class="panel-title">Generated Report Log (${STATE.reports.length})</span></div>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Report ID</th><th>Patient</th><th>Format</th><th>Period</th><th>Compiled By</th><th style="text-align:right;">Action</th></tr></thead>
+                  <tbody>
+                    ${STATE.reports.length === 0 ? `<tr><td colspan="6" style="color:var(--text-muted);text-align:center;padding:20px;">No reports compiled in current session.</td></tr>` : STATE.reports.slice(0, 6).map(r => `
+                      <tr>
+                        <td class="tabular"><span class="mono-tag">${r.reportId}</span></td>
+                        <td><strong>${r.patientName}</strong></td>
+                        <td>${r.reportType}</td>
+                        <td class="tabular" style="font-size:12px;color:var(--text-muted);">${r.dateRange}</td>
+                        <td>${r.generatedBy}</td>
+                        <td style="text-align:right;"><button class="btn btn-xs" onclick='STATE.activeReportPreview=${JSON.stringify(r)};renderApp();'>Inspect</button></td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // PAGE 5: STAFF DIRECTORY
+    async function toggleUserActive(userId, active) {
+      await fetch(`${API_BASE}/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active })
+      });
+      await fetchAllData();
+    }
+
+    async function submitAddUserModal(form) {
+      await fetch(`${API_BASE}/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: form.fullName.value,
+          username: form.username.value,
+          password: form.password.value,
+          role: form.role.value,
+          department: form.department.value,
+          email: form.email.value,
+          phone: form.phone.value
+        })
+      });
+      STATE.modalContent = null;
+      showToast('Staff Account Provisioned', `Added ${form.fullName.value} (${form.role.value})`);
+      await fetchAllData();
+    }
+
+    function openAddUserModal() {
+      STATE.modalContent = `
+        <div style="font-size:16px;font-weight:700;margin-bottom:14px;">Provision Clinician / Staff Account</div>
+        <form onsubmit="event.preventDefault(); submitAddUserModal(this);">
+          <div class="field"><label>Full Name & Credentials</label><input class="input" name="fullName" placeholder="Dr. Alex Rivera" required /></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="field"><label>Directory Username</label><input class="input tabular" name="username" placeholder="alex.rivera" required /></div>
+            <div class="field"><label>Initial Password</label><input type="password" class="input" name="password" value="hospital123" required /></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="field"><label>Access Role</label><select class="input" name="role"><option>Doctor</option><option>Nurse</option><option>Admin</option></select></div>
+            <div class="field"><label>Clinical Unit</label><input class="input" name="department" value="Cardiology ICU" required /></div>
+          </div>
+          <div class="field"><label>Hospital Email</label><input class="input" name="email" placeholder="alex.rivera@hospital.com" required /></div>
+          <div class="field"><label>Pager / Contact Number</label><input class="input tabular" name="phone" value="+1 (555) 890-1234" required /></div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+            <button type="button" class="btn" onclick="STATE.modalContent=null;renderApp();">Cancel</button>
+            <button type="submit" class="btn btn-primary">Provision Account</button>
+          </div>
+        </form>
+      `;
+      renderApp();
+    }
+
+    function renderUsersPage() {
+      const filtered = STATE.users.filter(u => {
+        const q = STATE.userSearch.toLowerCase();
+        const matchQ = !q || u.fullName.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.department.toLowerCase().includes(q);
+        const matchR = STATE.userRoleFilter === 'ALL' || u.role === STATE.userRoleFilter;
+        return matchQ && matchR;
+      });
+
+      return `
+        <div class="surface-panel">
+          <div class="panel-toolbar">
+            <div style="display:flex;align-items:center;gap:10px;flex:1;">
+              <input class="input" style="max-width:260px;padding:6px 10px;font-size:12.5px;"
+                     placeholder="Search clinicians by name or unit..."
+                     value="${STATE.userSearch}" oninput="STATE.userSearch=this.value; renderApp();" />
+              <select class="input" style="width:auto;padding:5px 10px;font-size:12px;" onchange="STATE.userRoleFilter=this.value; renderApp();">
+                <option value="ALL">All Roles (${STATE.users.length})</option>
+                <option value="Doctor">Physicians</option>
+                <option value="Nurse">Critical Care Nurses</option>
+                <option value="Admin">Clinical Engineering</option>
+              </select>
+            </div>
+            <button class="btn btn-xs btn-primary" onclick="openAddUserModal()">
+              ${ICONS.plus}<span>Provision Staff Account</span>
+            </button>
+          </div>
+
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Clinician</th>
+                  <th>Role</th>
+                  <th>Assigned Unit</th>
+                  <th>Institutional Email</th>
+                  <th>Contact</th>
+                  <th>Last Authenticated</th>
+                  <th style="text-align:right;">Access State</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filtered.map(u => `
+                  <tr>
+                    <td>
+                      <div style="display:flex;align-items:center;gap:9px;">
+                        <div class="patient-initials">${u.initials}</div>
+                        <div>
+                          <div style="font-weight:600;">${u.fullName}</div>
+                          <div class="tabular" style="font-size:11px;color:var(--text-muted);">${u.username}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td><span class="mono-tag">${u.role.toUpperCase()}</span></td>
+                    <td>${u.department}</td>
+                    <td class="tabular" style="font-size:12px;">${u.email}</td>
+                    <td class="tabular" style="font-size:12px;color:var(--text-muted);">${u.phone}</td>
+                    <td class="tabular" style="font-size:12px;color:var(--text-muted);">${formatTimeAgo(u.lastLogin)}</td>
+                    <td style="text-align:right;">
+                      <div style="display:inline-flex;align-items:center;gap:8px;">
+                        <label class="switch">
+                          <input type="checkbox" ${u.active ? 'checked' : ''} onchange="toggleUserActive('${u.userId}', this.checked)" />
+                          <span class="slider"></span>
+                        </label>
+                        <span class="acuity-pill ${u.active ? 'acuity-normal' : 'acuity-offline'}">${u.active ? 'ACTIVE' : 'SUSPENDED'}</span>
+                      </div>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    // PAGE 6: EDGE GATEWAYS (Raspberry Pi 5 Fleet Management)
+    function openRegisterDeviceModal() {
+      const nextNum = STATE.devices.length + 1;
+      STATE.modalContent = `
+        <div style="font-size:16px;font-weight:700;margin-bottom:14px;">Register Bedside Raspberry Pi 5 Gateway</div>
+        <form onsubmit="event.preventDefault(); submitRegisterDevice(this);">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="field"><label>Gateway Node ID</label><input class="input tabular" name="deviceId" value="ICU-PI-00${nextNum}" required /></div>
+            <div class="field"><label>Hostname / Label</label><input class="input" name="deviceName" value="ICU-0${nextNum} Monitor Hub" required /></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="field"><label>Hospital Ward</label><input class="input" name="location" value="ICU Ward B" required /></div>
+            <div class="field"><label>Static IPv4 (eth0)</label><input class="input tabular" name="ipAddress" value="192.168.1.${100 + nextNum}" required /></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="field"><label>Assigned Bed</label><input class="input tabular" name="bedNumber" value="ICU-0${nextNum}" required /></div>
+            <div class="field"><label>Acquisition Mode</label><select class="input" name="operatingMode"><option value="BEDSIDE_MONITOR">BEDSIDE_MONITOR (LAN/HL7)</option><option value="HARDWARE">HARDWARE (I2C/SPI Sensors)</option></select></div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+            <button type="button" class="btn" onclick="STATE.modalContent=null;renderApp();">Cancel</button>
+            <button type="submit" class="btn btn-primary">Register Node</button>
+          </div>
+        </form>
+      `;
+      renderApp();
+    }
+
+    async function submitRegisterDevice(form) {
+      await fetch(`${API_BASE}/devices`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deviceId: form.deviceId.value,
+          deviceName: form.deviceName.value,
+          location: form.location.value,
+          ipAddress: form.ipAddress.value,
+          bedNumber: form.bedNumber.value,
+          operatingMode: form.operatingMode.value,
+          actor: STATE.user?.fullName || 'Admin Lisa Wilson'
+        })
+      });
+      STATE.modalContent = null;
+      showToast('Gateway Registered', `Registered ${form.deviceId.value} (${form.ipAddress.value})`);
+      await fetchAllData();
+    }
+
+    function renderDevicesPage() {
+      const total = STATE.devices.length;
+      const online = STATE.devices.filter(d => d.deviceStatus === 'ONLINE').length;
+      const offline = STATE.devices.filter(d => d.deviceStatus === 'OFFLINE').length;
+      const totalQueued = STATE.devices.reduce((acc, d) => acc + (d.offlineQueueSize || 0), 0);
+
+      const filtered = STATE.devices.filter(d => {
+        const q = STATE.deviceSearch.toLowerCase();
+        const matchQ = !q || d.deviceName.toLowerCase().includes(q) || d.ipAddress.includes(q) || d.deviceId.toLowerCase().includes(q);
+        const matchS = STATE.deviceStatusFilter === 'ALL' || d.deviceStatus === STATE.deviceStatusFilter;
+        return matchQ && matchS;
+      });
+
+      return `
+        <div class="metric-strip">
+          <div class="metric-cell">
+            <div class="metric-label"><span>Registered Gateways</span></div>
+            <div class="metric-value">${total}</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-label"><span>Online & Streaming</span><span class="status-dot dot-online"></span></div>
+            <div class="metric-value" style="color:var(--normal-text);">${online}</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-label"><span>Offline / Buffering</span><span class="status-dot dot-crit"></span></div>
+            <div class="metric-value" style="color:var(--crit-text);">${offline}</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-label"><span>SQLite WAL Queued Frames</span></div>
+            <div class="metric-value">${totalQueued}</div>
+          </div>
+        </div>
+
+        <div class="subnav-bar">
+          <button class="subnav-tab ${STATE.deviceTab === 'overview' ? 'active' : ''}" onclick="STATE.deviceTab='overview';renderApp();">Gateway Fleet Inventory</button>
+          <button class="subnav-tab ${STATE.deviceTab === 'health' ? 'active' : ''}" onclick="STATE.deviceTab='health';renderApp();">SoC Thermal & SQLite Queue</button>
+          <button class="subnav-tab ${STATE.deviceTab === 'network' ? 'active' : ''}" onclick="STATE.deviceTab='network';renderApp();">MQTT/TLS & LAN Interfaces</button>
+          <button class="subnav-tab ${STATE.deviceTab === 'diagnostics' ? 'active' : ''}" onclick="runGatewayDiagnostics('ICU-PI-001');">Live Hardware Diagnostics</button>
+        </div>
+
+        <div class="surface-panel">
+          <div class="panel-toolbar">
+            <div style="display:flex;align-items:center;gap:10px;flex:1;">
+              <input class="input" style="max-width:250px;padding:6px 10px;font-size:12.5px;"
+                     placeholder="Filter gateways by ID, IP, or bed..."
+                     value="${STATE.deviceSearch}" oninput="STATE.deviceSearch=this.value; renderApp();" />
+              <select class="input" style="width:auto;padding:5px 10px;font-size:12px;" onchange="STATE.deviceStatusFilter=this.value; renderApp();">
+                <option value="ALL">All States</option>
+                <option value="ONLINE">Online</option>
+                <option value="OFFLINE">Offline</option>
+                <option value="MAINTENANCE">Maintenance</option>
+              </select>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-xs" onclick="fetchAllData()">Refresh Telemetry</button>
+              <button class="btn btn-xs btn-primary" onclick="openRegisterDeviceModal()">
+                ${ICONS.plus}<span>Register Gateway</span>
+              </button>
+            </div>
+          </div>
+
+          ${STATE.deviceTab === 'overview' ? `
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Node ID</th>
+                    <th>Bed</th>
+                    <th>Gateway Label & Ward</th>
+                    <th>LAN IPv4</th>
+                    <th>Link State</th>
+                    <th>Uptime</th>
+                    <th>Firmware</th>
+                    <th>Last Heartbeat</th>
+                    <th style="text-align:right;">Operations</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${filtered.map(d => `
+                    <tr>
+                      <td class="tabular"><strong>${d.deviceId}</strong></td>
+                      <td><span class="mono-tag">${d.bedNumber}</span></td>
+                      <td>
+                        <div style="font-weight:600;">${d.deviceName}</div>
+                        <div style="font-size:11.5px;color:var(--text-muted);">${d.location}</div>
+                      </td>
+                      <td class="tabular">${d.ipAddress}</td>
+                      <td>
+                        <span class="acuity-pill ${d.deviceStatus === 'ONLINE' ? 'acuity-normal' : d.deviceStatus === 'OFFLINE' ? 'acuity-critical' : 'acuity-warning'}">
+                          ${d.deviceStatus}
+                        </span>
+                      </td>
+                      <td class="tabular">${d.uptime}</td>
+                      <td><span class="mono-tag">${d.firmwareVersion}</span></td>
+                      <td class="tabular" style="color:var(--text-muted);">${formatTimeAgo(d.lastSeen)}</td>
+                      <td style="text-align:right;">
+                        <div style="display:inline-flex;gap:6px;">
+                          <button class="btn btn-xs" onclick="runGatewayDiagnostics('${d.deviceId}')">Diagnose</button>
+                          <button class="btn btn-xs ${d.deviceStatus === 'OFFLINE' ? 'btn-primary' : ''}"
+                                  onclick="toggleGatewayMaintenance('${d.deviceId}', ${d.deviceStatus === 'ONLINE'})">
+                            ${d.deviceStatus === 'ONLINE' ? 'Test Offline Buffer' : 'Restore Online'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          ` : STATE.deviceTab === 'health' ? `
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Node ID</th>
+                    <th>Acquisition Mode</th>
+                    <th>SoC Core Temp</th>
+                    <th>CPU Utilization</th>
+                    <th>Memory Used</th>
+                    <th>SQLite WAL Buffer</th>
+                    <th style="text-align:right;">Buffer Sync</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${filtered.map(d => `
+                    <tr>
+                      <td class="tabular"><strong>${d.deviceId}</strong> (${d.bedNumber})</td>
+                      <td><span class="mono-tag">${d.operatingMode}</span></td>
+                      <td class="tabular" style="font-weight:700;color:${(d.cpuTempC || 43) > 55 ? 'var(--crit-text)' : 'var(--normal-text)'};">${Number(d.cpuTempC || 43.2).toFixed(1)} °C</td>
+                      <td class="tabular">${Number(d.cpuUsagePct || 14.0).toFixed(1)}%</td>
+                      <td class="tabular">${Number(d.memoryUsagePct || 33.5).toFixed(1)}%</td>
+                      <td class="tabular"><span class="acuity-pill ${d.offlineQueueSize > 0 ? 'acuity-warning' : 'acuity-normal'}">${d.offlineQueueSize || 0} frames</span></td>
+                      <td style="text-align:right;"><button class="btn btn-xs" onclick="flushGatewayQueue('${d.deviceId}')">Flush Queue</button></td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          ` : STATE.deviceTab === 'network' ? `
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Node ID</th>
+                    <th>Bedside LAN IPv4</th>
+                    <th>Hardware MAC</th>
+                    <th>Upstream Transport</th>
+                    <th>Cloud RTT</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${filtered.map(d => `
+                    <tr>
+                      <td class="tabular"><strong>${d.deviceId}</strong></td>
+                      <td class="tabular">${d.ipAddress}</td>
+                      <td class="tabular">${d.macAddress || 'DC:A6:32:4F:11:01'}</td>
+                      <td class="tabular">MQTT v3.1.1 / TLSv1.2 (8883)</td>
+                      <td class="tabular" style="font-weight:700;">${d.deviceStatus === 'ONLINE' ? `${Number(d.latencyMs || 4.2).toFixed(1)} ms` : 'TIMEOUT'}</td>
+                      <td><span class="acuity-pill ${d.deviceStatus === 'ONLINE' ? 'acuity-normal' : 'acuity-critical'}">${d.deviceStatus}</span></td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          ` : `
+            <div style="padding:18px;">
+              ${!STATE.liveDiagnostics ? `<div style="color:var(--text-muted);">Probing edge gateway hardware buses...</div>` : `
+                <div class="metric-strip" style="margin-bottom:16px;">
+                  <div class="metric-cell">
+                    <div class="metric-label">SoC Thermal / CPU</div>
+                    <div class="metric-value" style="font-size:18px;">${STATE.liveDiagnostics.hostMetrics?.cpuTempC}°C • ${STATE.liveDiagnostics.hostMetrics?.cpuUsagePct}%</div>
+                  </div>
+                  <div class="metric-cell">
+                    <div class="metric-label">I2C / 1-Wire / SPI</div>
+                    <div class="metric-value" style="font-size:13px;margin-top:6px;">${STATE.liveDiagnostics.sensorBusStatus?.MAX30102_I2C}</div>
+                  </div>
+                  <div class="metric-cell">
+                    <div class="metric-label">Upstream RTT</div>
+                    <div class="metric-value" style="font-size:18px;">${STATE.liveDiagnostics.network?.rttLatencyMs ?? '--'} ms</div>
+                  </div>
+                  <div class="metric-cell">
+                    <div class="metric-label">Frames Published</div>
+                    <div class="metric-value" style="font-size:18px;">${STATE.liveDiagnostics.network?.messagesPublished}</div>
+                  </div>
+                </div>
+                <div style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--text-secondary);">Edge Gateway System Log Tail (gateway.log):</div>
+                <pre class="tabular" style="background:#060a12;color:#34d399;padding:12px;border-radius:6px;font-size:11.5px;overflow-x:auto;max-height:210px;border:1px solid #1e293b;">${(STATE.liveDiagnostics.recentLogs || ['No log entries']).join('\n')}</pre>
+              `}
+            </div>
+          `}
+        </div>
+      `;
+    }
+
+    // PAGE 7: STATION SETTINGS
+    async function saveThresholdSettings() {
+      const res = await fetch(`${API_BASE}/settings/thresholds`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...STATE.thresholds, actor: STATE.user?.fullName || 'Clinical Admin' })
+      });
+      STATE.thresholds = await res.json();
+      STATE.unsavedSettings = false;
+      showToast('Thresholds Saved', 'Alarm limits synchronized with Cloud Evaluation Engine.');
+      await fetchAllData();
+    }
+
+    async function resetThresholdSettings() {
+      const res = await fetch(`${API_BASE}/settings/thresholds/reset`, { method: 'POST' });
+      STATE.thresholds = await res.json();
+      STATE.unsavedSettings = false;
+      showToast('Defaults Restored', 'Alarm limits reset to clinical baseline.');
+      await fetchAllData();
+    }
+
+    async function handlePasswordChange(form) {
+      if (form.newPass.value !== form.confirmPass.value) {
+        showToast('Password Mismatch', 'Confirmation password does not match.', 'CRITICAL');
+        return;
+      }
+      await fetch(`${API_BASE}/auth/change-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: STATE.user?.userId || 'USR-001', newPassword: form.newPass.value })
+      });
+      form.reset();
+      showToast('Credentials Updated', 'PBKDF2-SHA256 password hash rotated.');
+    }
+
+    function renderSettingsPage() {
+      const t = STATE.thresholds;
+      return `
+        <div class="subnav-bar">
+          <button class="subnav-tab ${STATE.settingsTab === 'thresholds' ? 'active' : ''}" onclick="STATE.settingsTab='thresholds';renderApp();">Clinical Alarm Limits</button>
+          <button class="subnav-tab ${STATE.settingsTab === 'notifications' ? 'active' : ''}" onclick="STATE.settingsTab='notifications';renderApp();">Acoustic & Visual Escalation</button>
+          <button class="subnav-tab ${STATE.settingsTab === 'privacy' ? 'active' : ''}" onclick="STATE.settingsTab='privacy';renderApp();">Security & HIPAA Audit Trail</button>
+          <button class="subnav-tab ${STATE.settingsTab === 'system' ? 'active' : ''}" onclick="STATE.settingsTab='system';renderApp();">Cloud & Edge Endpoints</button>
+        </div>
+
+        ${STATE.settingsTab === 'thresholds' ? `
+          <div class="surface-panel">
+            <div class="panel-toolbar">
+              <span class="panel-title">Global ICU Alarm Threshold Matrix</span>
+              <div style="display:flex;gap:8px;align-items:center;">
+                ${STATE.unsavedSettings ? `<span class="acuity-pill acuity-warning">UNSAVED EDITS</span>` : ''}
+                <button class="btn btn-xs" onclick="resetThresholdSettings()">Reset Baseline</button>
+                <button class="btn btn-xs btn-primary" onclick="saveThresholdSettings()">Save & Sync Thresholds</button>
+              </div>
+            </div>
+            <div style="padding:18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;">
+              <div style="border:1px solid var(--border);border-radius:6px;padding:14px;">
+                <div style="font-weight:700;font-size:13px;margin-bottom:10px;">Heart Rate Limits (BPM)</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                  <div class="field"><label>Lower Warn</label><input type="number" class="input tabular" value="${t.heartRate.minNormal}" onchange="STATE.thresholds.heartRate.minNormal=Number(this.value);STATE.unsavedSettings=true;renderApp();" /></div>
+                  <div class="field"><label>Upper Warn</label><input type="number" class="input tabular" value="${t.heartRate.maxNormal}" onchange="STATE.thresholds.heartRate.maxNormal=Number(this.value);STATE.unsavedSettings=true;renderApp();" /></div>
+                  <div class="field"><label>Upper Crit</label><input type="number" class="input tabular" value="${t.heartRate.criticalHigh}" onchange="STATE.thresholds.heartRate.criticalHigh=Number(this.value);STATE.unsavedSettings=true;renderApp();" /></div>
+                </div>
+              </div>
+
+              <div style="border:1px solid var(--border);border-radius:6px;padding:14px;">
+                <div style="font-weight:700;font-size:13px;margin-bottom:10px;">Arterial SpO₂ & Core Temp</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                  <div class="field"><label>SpO₂ Warn (%)</label><input type="number" class="input tabular" value="${t.spo2.minNormal}" onchange="STATE.thresholds.spo2.minNormal=Number(this.value);STATE.unsavedSettings=true;renderApp();" /></div>
+                  <div class="field"><label>SpO₂ Crit (%)</label><input type="number" class="input tabular" value="${t.spo2.criticalLow}" onchange="STATE.thresholds.spo2.criticalLow=Number(this.value);STATE.unsavedSettings=true;renderApp();" /></div>
+                  <div class="field"><label>Max Temp (°C)</label><input type="number" step="0.1" class="input tabular" value="${t.temperature.maxNormal}" onchange="STATE.thresholds.temperature.maxNormal=Number(this.value);STATE.unsavedSettings=true;renderApp();" /></div>
+                </div>
+              </div>
+
+              <div style="border:1px solid var(--border);border-radius:6px;padding:14px;">
+                <div style="font-weight:700;font-size:13px;margin-bottom:10px;">NIBP & Respiratory Rate</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                  <div class="field"><label>Sys Min</label><input type="number" class="input tabular" value="${t.bloodPressure.systolicMin}" onchange="STATE.thresholds.bloodPressure.systolicMin=Number(this.value);STATE.unsavedSettings=true;renderApp();" /></div>
+                  <div class="field"><label>Sys Max</label><input type="number" class="input tabular" value="${t.bloodPressure.systolicMax}" onchange="STATE.thresholds.bloodPressure.systolicMax=Number(this.value);STATE.unsavedSettings=true;renderApp();" /></div>
+                  <div class="field"><label>Resp Max (/m)</label><input type="number" class="input tabular" value="${t.respiratoryRate.maxNormal}" onchange="STATE.thresholds.respiratoryRate.maxNormal=Number(this.value);STATE.unsavedSettings=true;renderApp();" /></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ` : STATE.settingsTab === 'notifications' ? `
+          <div class="surface-panel" style="padding:18px;max-width:620px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+              <div>
+                <div style="font-weight:700;">IEC 60601-1-8 Acoustic Alarm Synthesizer</div>
+                <div style="font-size:12px;color:var(--text-muted);">Play multi-tone audio alert on unacknowledged critical threshold breaches</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" ${STATE.soundEnabled ? 'checked' : ''} onchange="STATE.soundEnabled=this.checked;renderApp();" />
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="field">
+              <label>Master Alarm Gain (${STATE.soundVolume}%)</label>
+              <input type="range" min="0" max="100" value="${STATE.soundVolume}" style="width:100%;" oninput="STATE.soundVolume=Number(this.value);renderApp();" />
+            </div>
+            <button class="btn btn-xs" onclick="playMedicalAlarm('CRITICAL')">Test Critical Acoustic Sequence</button>
+          </div>
+        ` : STATE.settingsTab === 'privacy' ? `
+          <div style="display:grid;grid-template-columns:340px 1fr;gap:16px;">
+            <div class="surface-panel" style="padding:18px;">
+              <div style="font-weight:700;font-size:13.5px;margin-bottom:12px;">Rotate Clinician Password</div>
+              <form onsubmit="event.preventDefault(); handlePasswordChange(this);">
+                <div class="field"><label>Active Operator</label><input class="input" value="${STATE.user?.fullName} (${STATE.user?.role})" disabled /></div>
+                <div class="field"><label>New Password</label><input type="password" class="input" name="newPass" required /></div>
+                <div class="field"><label>Confirm Password</label><input type="password" class="input" name="confirmPass" required /></div>
+                <button type="submit" class="btn btn-primary" style="width:100%;">Update PBKDF2 Hash</button>
+              </form>
+            </div>
+            <div class="surface-panel">
+              <div class="panel-toolbar"><span class="panel-title">Immutable Clinical & Security Audit Trail</span></div>
+              <div class="table-scroll" style="max-height:360px;overflow-y:auto;">
+                <table>
+                  <thead><tr><th>Timestamp</th><th>Operator</th><th>Event</th><th>Entity</th><th>Details</th></tr></thead>
+                  <tbody>
+                    ${STATE.auditLogs.map(log => `
+                      <tr>
+                        <td class="tabular" style="font-size:11.5px;color:var(--text-muted);">${new Date(log.timestamp).toLocaleTimeString()}</td>
+                        <td><strong>${log.actor}</strong></td>
+                        <td><span class="mono-tag">${log.action}</span></td>
+                        <td class="tabular" style="font-size:12px;">${log.targetId}</td>
+                        <td style="font-size:12px;">${log.details}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        ` : `
+          <div class="surface-panel" style="padding:18px;">
+            <div style="font-weight:700;font-size:13.5px;margin-bottom:14px;">Cloud & Edge Telemetry Endpoints</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+              <div class="field"><label>AWS IoT Core MQTT Broker</label><input class="input tabular" value="iot.us-east-1.amazonaws.com:8883 (TLSv1.2 X.509)" readonly /></div>
+              <div class="field"><label>Real-Time WebSocket Stream</label><input class="input tabular" value="${WS_ENDPOINT}" readonly /></div>
+              <div class="field"><label>REST API Endpoint</label><input class="input tabular" value="${API_BASE}" readonly /></div>
+              <div class="field"><label>Deduplication & Cooldown Window</label><input class="input tabular" value="30 Days TTL • Cooldown: ${t.cooldownSeconds}s" readonly /></div>
+            </div>
+          </div>
+        `}
+      `;
+    }
+
+    // PAGE 8: BIOMEDICAL SUPPORT
+    async function handleTicketSubmit(form) {
+      await fetch(`${API_BASE}/tickets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject: form.subject.value,
+          priority: form.priority.value,
+          category: form.category.value,
+          description: form.description.value,
+          createdBy: STATE.user?.fullName || 'Dr. Sarah Smith'
+        })
+      });
+      showToast('Work Order Logged', 'Dispatched to Clinical Biomedical Engineering.');
+      STATE.helpTab = 'tickets';
+      await fetchAllData();
+    }
+
+    async function resolveSupportTicket(ticketId) {
+      await fetch(`${API_BASE}/tickets/${ticketId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'RESOLVED' })
+      });
+      showToast('Work Order Closed', `Ticket #${ticketId} marked RESOLVED.`);
+      await fetchAllData();
+    }
+
+    function renderHelpPage() {
+      return `
+        <div style="display:grid;grid-template-columns:360px 1fr;gap:16px;">
+          <div class="surface-panel" style="padding:18px;">
+            <div style="font-weight:700;font-size:13.5px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border);">
+              Log Clinical Engineering Work Order
+            </div>
+            <form onsubmit="event.preventDefault(); handleTicketSubmit(this);">
+              <div class="field"><label>Issue Summary</label><input class="input" name="subject" placeholder="e.g., SpO2 optical probe calibration on ICU-02" required /></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div class="field"><label>Urgency</label><select class="input" name="priority"><option>Medium</option><option>High</option><option>Low</option></select></div>
+                <div class="field"><label>Subsystem</label><select class="input" name="category"><option>Hardware</option><option>Technical</option><option>Network</option></select></div>
+              </div>
+              <div class="field"><label>Technical Details</label><textarea class="input" rows="3" name="description" placeholder="Include bed number, gateway ID, and observed symptom..." required></textarea></div>
+              <button type="submit" class="btn btn-primary" style="width:100%;">Dispatch Work Order</button>
+            </form>
+          </div>
+
+          <div class="surface-panel">
+            <div class="panel-toolbar"><span class="panel-title">Active Biomedical Work Orders (${STATE.tickets.length})</span></div>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Ticket</th><th>Summary & Details</th><th>Subsystem</th><th>Urgency</th><th>Status</th><th style="text-align:right;">Action</th></tr></thead>
+                <tbody>
+                  ${STATE.tickets.map(t => `
+                    <tr>
+                      <td class="tabular"><span class="mono-tag">#${t.ticketId}</span></td>
+                      <td style="white-space:normal;max-width:360px;">
+                        <div style="font-weight:600;">${t.subject}</div>
+                        <div style="font-size:12px;color:var(--text-muted);">${t.description}</div>
+                      </td>
+                      <td><span class="mono-tag">${t.category}</span></td>
+                      <td><span class="acuity-pill ${t.priority === 'HIGH' ? 'acuity-critical' : 'acuity-warning'}">${t.priority}</span></td>
+                      <td><span class="acuity-pill ${t.status === 'RESOLVED' ? 'acuity-normal' : 'acuity-offline'}">${t.status}</span></td>
+                      <td style="text-align:right;">
+                        ${t.status !== 'RESOLVED' ? `<button class="btn btn-xs" onclick="resolveSupportTicket('${t.ticketId}')">Close</button>` : '—'}
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    let lastRenderedPage = null;
+    function renderApp() {
+      const root = document.getElementById('app-root');
+      if (!root) return;
+
+      const pageChanged = lastRenderedPage !== STATE.activePage;
+      const savedWindowScrollY = pageChanged ? 0 : window.scrollY;
+      lastRenderedPage = STATE.activePage;
+
+      if (!STATE.user) {
+        root.innerHTML = renderLogin();
+        return;
+      }
+
+      let pageHtml = '';
+      if (STATE.activePage === 'dashboard') pageHtml = renderDashboardPage();
+      else if (STATE.activePage === 'patient-detail') pageHtml = renderPatientDetailPage();
+      else if (STATE.activePage === 'alerts') pageHtml = renderAlertsPage();
+      else if (STATE.activePage === 'reports') pageHtml = renderReportsPage();
+      else if (STATE.activePage === 'users') pageHtml = renderUsersPage();
+      else if (STATE.activePage === 'devices') pageHtml = renderDevicesPage();
+      else if (STATE.activePage === 'settings') pageHtml = renderSettingsPage();
+      else if (STATE.activePage === 'help') pageHtml = renderHelpPage();
+
+      root.innerHTML = `
+        <div class="app-layout">
+          ${renderSidebar()}
+          <div class="workspace">
+            ${renderTopBar()}
+            <main class="content-area">
+              ${pageHtml}
+            </main>
+          </div>
+        </div>
+        ${STATE.modalContent ? `
+          <div class="modal-backdrop">
+            <div class="modal-card">${STATE.modalContent}</div>
+          </div>
+        ` : ''}
+      `;
+
+      window.scrollTo(0, savedWindowScrollY);
+
+      if (STATE.activePage === 'patient-detail') {
+        startDetailEcgCanvas();
+      }
+    }
+
+    renderApp();
+    fetchAllData();
+    connectWebSocket();
+  </script>
+</body>
+</html>

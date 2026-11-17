@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://icu-monitor-pro.local/schemas/threshold.schema.json",
+  "title": "ThresholdConfiguration",
+  "description": "Configurable demonstration alert thresholds for ICU vital signs (Not clinical standards)",
+  "type": "object",
+  "required": [
+    "configurationId",
+    "updatedAt",
+    "heartRate",
+    "spo2",
+    "temperature",
+    "respiratoryRate",
+    "bloodPressure",
+    "cooldownSeconds"
+  ],
+  "properties": {
+    "configurationId": {
+      "type": "string",
+      "default": "DEFAULT_DEMO_THRESHOLDS"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "cooldownSeconds": {
+      "type": "integer",
+      "minimum": 5,
+      "maximum": 3600,
+      "default": 30,
+      "description": "Cooldown duration in seconds to prevent duplicate alerts for sustained abnormal conditions"
+    },
+    "heartRate": {
+      "type": "object",
+      "required": ["minNormal", "maxNormal", "criticalLow", "criticalHigh"],
+      "properties": {
+        "minNormal": { "type": "number", "default": 60 },
+        "maxNormal": { "type": "number", "default": 100 },
+        "criticalLow": { "type": "number", "default": 45 },
+        "criticalHigh": { "type": "number", "default": 120 }
+      }
+    },
+    "spo2": {
+      "type": "object",
+      "required": ["minNormal", "criticalLow"],
+      "properties": {
+        "minNormal": { "type": "number", "default": 94 },
+        "criticalLow": { "type": "number", "default": 90 }
+      }
+    },
+    "temperature": {
+      "type": "object",
+      "required": ["minNormal", "maxNormal", "criticalHigh"],
+      "properties": {
+        "minNormal": { "type": "number", "default": 36.0 },
+        "maxNormal": { "type": "number", "default": 38.0 },
+        "criticalHigh": { "type": "number", "default": 39.0 }
+      }
+    },
+    "respiratoryRate": {
+      "type": "object",
+      "required": ["minNormal", "maxNormal", "criticalLow", "criticalHigh"],
+      "properties": {
+        "minNormal": { "type": "number", "default": 12 },
+        "maxNormal": { "type": "number", "default": 20 },
+        "criticalLow": { "type": "number", "default": 8 },
+        "criticalHigh": { "type": "number", "default": 28 }
+      }
+    },
+    "bloodPressure": {
+      "type": "object",
+      "required": ["systolicMin", "systolicMax", "diastolicMin", "diastolicMax"],
+      "properties": {
+        "systolicMin": { "type": "number", "default": 90 },
+        "systolicMax": { "type": "number", "default": 140 },
+        "diastolicMin": { "type": "number", "default": 60 },
+        "diastolicMax": { "type": "number", "default": 90 }
+      }
+    }
+  },
+  "additionalProperties": false
+}

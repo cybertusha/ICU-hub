@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://icu-monitor-pro.local/schemas/alert.schema.json",
+  "title": "Alert",
+  "description": "Automated alert entity generated when patient vital readings cross configured thresholds",
+  "type": "object",
+  "required": [
+    "alertId",
+    "patientId",
+    "parameter",
+    "detectedValue",
+    "threshold",
+    "severity",
+    "description",
+    "createdAt",
+    "acknowledged",
+    "resolved"
+  ],
+  "properties": {
+    "alertId": {
+      "type": "string",
+      "description": "Unique identifier for the alert (e.g., ALT-0001)"
+    },
+    "patientId": {
+      "type": "string",
+      "pattern": "^PATIENT-[0-9]{3,}$"
+    },
+    "patientName": {
+      "type": "string"
+    },
+    "bedNumber": {
+      "type": "string"
+    },
+    "deviceId": {
+      "type": "string"
+    },
+    "parameter": {
+      "type": "string",
+      "enum": [
+        "heartRate",
+        "spo2",
+        "temperature",
+        "respiratoryRate",
+        "bloodPressure",
+        "deviceConnectivity"
+      ]
+    },
+    "category": {
+      "type": "string",
+      "enum": ["vitals", "equipment", "system"],
+      "default": "vitals"
+    },
+    "priority": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3,
+      "description": "1 = Critical, 2 = Warning, 3 = Info"
+    },
+    "detectedValue": {
+      "type": ["number", "string"],
+      "description": "Measured value that triggered the alert"
+    },
+    "threshold": {
+      "type": "string",
+      "description": "Human-readable configured threshold range (e.g., '94-100%' or '60-100 BPM')"
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["INFO", "WARNING", "CRITICAL"]
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable alert message (e.g., 'Oxygen saturation critically low')"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "acknowledged": {
+      "type": "boolean",
+      "default": false
+    },
+    "acknowledgedBy": {
+      "type": ["string", "null"],
+      "default": null
+    },
+    "acknowledgedAt": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "default": null
+    },
+    "resolved": {
+      "type": "boolean",
+      "default": false
+    },
+    "resolvedBy": {
+      "type": ["string", "null"],
+      "default": null
+    },
+    "resolvedAt": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "default": null
+    },
+    "recoveredAt": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "default": null,
+      "description": "Timestamp when patient parameter returned to normal range"
+    }
+  },
+  "additionalProperties": false
+}

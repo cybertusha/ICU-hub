@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ICU Bedside Multiparameter Patient Monitor</title>
+  <style>
+    :root {
+      --bg-monitor: #04070d;
+      --bg-channel: #080d17;
+      --bg-bar: #0c1322;
+      --border: #1a2639;
+      --ecg: #10b981;
+      --spo2: #38bdf8;
+      --nibp: #f97316;
+      --temp: #fbbf24;
+      --resp: #a78bfa;
+      --crit: #ef4444;
+      --warn: #f59e0b;
+      --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg-monitor);
+      color: #f1f5f9;
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      user-select: none;
+    }
+    .tabular { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+    /* Top Patient & Alarm Banner */
+    .monitor-top-bar {
+      height: 48px;
+      background: var(--bg-bar);
+      border-bottom: 1px solid var(--border);
+      padding: 0 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .patient-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+    }
+    .bed-tag {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 12px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: #162238;
+      color: #38bdf8;
+      border: 1px solid #263859;
+    }
+    .acuity-banner {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+    }
+    .banner-normal { background: rgba(16, 185, 129, 0.14); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); }
+    .banner-warning { background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.45); }
+    .banner-critical {
+      background: #dc2626;
+      color: #ffffff;
+      border: 1px solid #f87171;
+      animation: alarmBlink 0.9s infinite;
+    }
+    @keyframes alarmBlink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.55; }
+    }
+
+    .top-controls { display: flex; align-items: center; gap: 8px; }
+    select, button {
+      background: #131d31;
+      color: #e2e8f0;
+      border: 1px solid #26354f;
+      padding: 6px 11px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    button:hover { background: #1c2a44; }
+    .btn-active-pause { background: #7f1d1d; border-color: #dc2626; color: #fff; }
+
+    /* Main Monitor Split: Left Waveforms (72%) | Right Numeric Channels (28%) */
+    .monitor-body {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 330px;
+      border-bottom: 1px solid var(--border);
+    }
+    @media (max-width: 960px) {
+      .monitor-body { grid-template-columns: 1fr; }
+    }
+    .waveforms-pane {
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+    }
+    .wave-channel {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-monitor);
+      position: relative;
+    }
+    .wave-header {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      letter-spacing: 0.04em;
+    }
+    canvas {
+      width: 100%;
+      display: block;
+      background: #03060c;
+    }
+
+    /* Signal Calibration Strip */
+    .calibration-pane {
+      padding: 12px 16px;
+      background: var(--bg-channel);
+      flex: 1;
+    }
+    .cal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+    .profile-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 6px;
+    }
+    .prof-btn {
+      text-align: left;
+      padding: 8px 10px;
+      background: #0b1220;
+      border: 1px solid #1e293b;
+      border-radius: 5px;
+      transition: border-color 0.12s, background 0.12s;
+    }
+    .prof-btn.active {
+      background: rgba(56, 189, 248, 0.12);
+      border-color: #38bdf8;
+    }
+    .prof-btn .t { font-size: 12px; font-weight: 700; color: #f8fafc; }
+    .prof-btn .d { font-size: 10.5px; color: #64748b; font-family: var(--font-mono); margin-top: 2px; }
+
+    /* Right Numeric Parameter Column */
+    .numerics-pane {
+      background: var(--bg-channel);
+      display: flex;
+      flex-direction: column;
+    }
+    .param-box {
+      flex: 1;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .param-box:last-child { border-bottom: none; }
+    .param-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+    .param-main {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-top: 2px;
+    }
+    .param-limits {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.25;
+    }
+    .param-val {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-size: 52px;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.03em;
+    }
+
+    /* Bottom Telemetry Status Bar */
+    .monitor-footer {
+      height: 36px;
+      background: var(--bg-bar);
+      padding: 0 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+  <header class="monitor-top-bar">
+    <div class="patient-meta">
+      <span class="bed-tag" id="patient-bed">ICU-01</span>
+      <strong style="font-size:15px;color:#fff;" id="patient-name">Emily Johnson</strong>
+      <span class="tabular" style="color:#64748b;font-size:12px;" id="patient-id-label">PATIENT-001 • ADULT ICU</span>
+      <span class="acuity-banner banner-normal" id="patient-status">NORMAL SINUS</span>
+    </div>
+
+    <div class="top-controls">
+      <select id="patient-select">
+        <option value="PATIENT-001">ICU-01 — Emily Johnson (ICU-PI-001)</option>
+        <option value="PATIENT-002">ICU-02 — Michael Chen (ICU-PI-002)</option>
+        <option value="PATIENT-003">ICU-03 — Sarah Davis (ICU-PI-003)</option>
+        <option value="PATIENT-004">ICU-04 — James Thompson (ICU-PI-004)</option>
+        <option value="PATIENT-005">ICU-05 — Maria Rodriguez (ICU-PI-005)</option>
+        <option value="PATIENT-006">ICU-06 — Robert Kim (ICU-PI-006)</option>
+      </select>
+      <button onclick="triggerNibpCycle()">Start NIBP</button>
+      <button id="toggle-run-btn" onclick="toggleRunning()">Freeze Waveforms</button>
+    </div>
+  </header>
+
+  <main class="monitor-body">
+    <section class="waveforms-pane">
+      <div class="wave-channel">
+        <div class="wave-header">
+          <span style="color:var(--ecg);">ECG II &nbsp; 1 mV &nbsp; 25.0 mm/s &nbsp; MON (0.5–40 Hz)</span>
+          <span id="timestamp-label" style="color:#64748b;">--:--:--</span>
+        </div>
+        <canvas id="ecg-canvas" width="880" height="175" style="height:175px;"></canvas>
+      </div>
+
+      <div class="wave-channel">
+        <div class="wave-header">
+          <span style="color:var(--spo2);">PLETH &nbsp; SpO₂ OPTICAL PERFUSION WAVE &nbsp; 25.0 mm/s</span>
+          <span style="color:#64748b;">PI: 3.4%</span>
+        </div>
+        <canvas id="pleth-canvas" width="880" height="135" style="height:135px;"></canvas>
+      </div>
+
+      <div class="calibration-pane">
+        <div class="cal-header">
+          <span>Physiological Signal Profile & Edge Calibration Source</span>
+          <span id="active-scenario-badge" style="color:#38bdf8;">ACTIVE: NORMAL SINUS RHYTHM</span>
+        </div>
+        <div class="profile-bar" id="scenario-buttons"></div>
+      </div>
+    </section>
+
+    <aside class="numerics-pane">
+      <div class="param-box">
+        <div class="param-top">
+          <span style="color:var(--ecg);">HR</span>
+          <span style="color:#64748b;">bpm</span>
+        </div>
+        <div class="param-main">
+          <div class="param-limits">100<br/>60</div>
+          <div class="param-val" id="val-hr" style="color:var(--ecg);">73</div>
+        </div>
+      </div>
+
+      <div class="param-box">
+        <div class="param-top">
+          <span style="color:var(--spo2);">SpO₂</span>
+          <span style="color:#64748b;">%</span>
+        </div>
+        <div class="param-main">
+          <div class="param-limits">100<br/>94</div>
+          <div class="param-val" id="val-spo2" style="color:var(--spo2);">98</div>
+        </div>
+      </div>
+
+      <div class="param-box">
+        <div class="param-top">
+          <span style="color:var(--nibp);">NIBP</span>
+          <span style="color:#64748b;" id="val-map">MAP 92 mmHg</span>
+        </div>
+        <div class="param-main">
+          <div class="param-limits">140/90<br/>90/60</div>
+          <div class="param-val" id="val-bp" style="color:var(--nibp);font-size:38px;">120/78</div>
+        </div>
+      </div>
+
+      <div class="param-box">
+        <div class="param-top">
+          <span style="color:var(--temp);">TEMP T1</span>
+          <span style="color:#64748b;">°C</span>
+        </div>
+        <div class="param-main">
+          <div class="param-limits">38.0<br/>36.0</div>
+          <div class="param-val" id="val-temp" style="color:var(--temp);font-size:44px;">36.7</div>
+        </div>
+      </div>
+
+      <div class="param-box">
+        <div class="param-top">
+          <span style="color:var(--resp);">RESP</span>
+          <span style="color:#64748b;">rpm</span>
+        </div>
+        <div class="param-main">
+          <div class="param-limits">20<br/>12</div>
+          <div class="param-val" id="val-rr" style="color:var(--resp);font-size:44px;">16</div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="monitor-footer">
+    <span id="gateway-pill" style="color:#34d399;">LAN ETH0 LINK: ACTIVE</span>
+    <span id="packet-counter">TX FRAMES: 0 | PI SQLITE BUFFER: 0</span>
+  </footer>
+
+  <script>
+    const PROFILES = {
+      NORMAL: { label: 'Normal Sinus', desc: 'HR 68–78 | SpO2 98%' },
+      HIGH_HR: { label: 'Sinus Tachycardia', desc: 'HR 125–138 bpm' },
+      LOW_SPO2: { label: 'Acute Hypoxemia', desc: 'SpO2 85–89%' },
+      HIGH_TEMP: { label: 'Hyperpyrexia', desc: 'Temp 38.9–39.5°C' },
+      ABNORMAL_RR: { label: 'Tachypnea', desc: 'Resp 28–33 rpm' },
+      CRITICAL: { label: 'Multi-Organ Crisis', desc: 'HR >132 | SpO2 <88%' },
+      RECOVERY: { label: 'Stabilization', desc: 'Return to baseline' }
+    };
+
+    let currentPatientId = 'PATIENT-001';
+    let currentScenario = 'NORMAL';
+    let isRunning = true;
+    let currentHr = 73;
+    let currentSpo2 = 98;
+    let currentStatus = 'NORMAL';
+
+    const scenarioContainer = document.getElementById('scenario-buttons');
+    Object.entries(PROFILES).forEach(([key, meta]) => {
+      const btn = document.createElement('button');
+      btn.className = 'prof-btn' + (key === currentScenario ? ' active' : '');
+      btn.id = 'scen-' + key;
+      btn.innerHTML = `<div class="t">${meta.label}</div><div class="d">${meta.desc}</div>`;
+      btn.onclick = () => selectScenario(key);
+      scenarioContainer.appendChild(btn);
+    });
+
+    document.getElementById('patient-select').addEventListener('change', async (e) => {
+      currentPatientId = e.target.value;
+      await fetch('/api/simulator/patient', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patientId: currentPatientId })
+      }).catch(() => {});
+      pollState();
+    });
+
+    async function selectScenario(key) {
+      currentScenario = key;
+      document.querySelectorAll('.prof-btn').forEach(b => b.classList.remove('active'));
+      const activeBtn = document.getElementById('scen-' + key);
+      if (activeBtn) activeBtn.classList.add('active');
+      document.getElementById('active-scenario-badge').textContent = 'ACTIVE: ' + PROFILES[key].label.toUpperCase();
+      await fetch('/api/simulator/scenario', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patientId: currentPatientId, scenario: key })
+      }).catch(() => {});
+      pollState();
+    }
+
+    async function triggerNibpCycle() {
+      await pollState();
+    }
+
+    async function toggleRunning() {
+      isRunning = !isRunning;
+      const btn = document.getElementById('toggle-run-btn');
+      btn.textContent = isRunning ? 'Freeze Waveforms' : 'Resume Sweep';
+      btn.className = isRunning ? '' : 'btn-active-pause';
+      await fetch('/api/simulator/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ running: isRunning })
+      }).catch(() => {});
+    }
+
+    async function pollState() {
+      try {
+        const res = await fetch('/api/simulator/state?patientId=' + encodeURIComponent(currentPatientId));
+        if (!res.ok) return;
+        const data = await res.json();
+        document.getElementById('patient-name').textContent = data.patientName;
+        document.getElementById('patient-bed').textContent = data.bedNumber;
+        document.getElementById('patient-id-label').textContent = `${data.patientId} • GATEWAY ${data.deviceId}`;
+        currentHr = data.vitals.heartRate;
+        currentSpo2 = data.vitals.spo2;
+        document.getElementById('val-hr').textContent = data.vitals.heartRate;
+        document.getElementById('val-spo2').textContent = data.vitals.spo2;
+        document.getElementById('val-temp').textContent = Number(data.vitals.temperature).toFixed(1);
+        document.getElementById('val-rr').textContent = data.vitals.respiratoryRate;
+        const sys = data.vitals.bloodPressure.systolic;
+        const dia = data.vitals.bloodPressure.diastolic;
+        const mapVal = Math.round(dia + (sys - dia) / 3);
+        document.getElementById('val-bp').textContent = `${sys}/${dia}`;
+        document.getElementById('val-map').textContent = `MAP ${mapVal} mmHg`;
+        document.getElementById('timestamp-label').textContent = new Date(data.timestamp).toLocaleTimeString();
+
+        currentStatus = data.monitoringStatus || 'NORMAL';
+        const statusEl = document.getElementById('patient-status');
+        statusEl.textContent = currentStatus === 'NORMAL' ? 'NORMAL SINUS' : currentStatus + ' ALARM';
+        statusEl.className = 'acuity-banner banner-' + currentStatus.toLowerCase();
+
+        document.getElementById('gateway-pill').textContent =
+          `GATEWAY ${data.deviceId}: ${data.gatewayStatus} | UPSTREAM: ${data.cloudConnected ? 'AWS TLS ONLINE' : 'SQLITE BUFFERING'}`;
+        document.getElementById('packet-counter').textContent =
+          `TX FRAMES: ${data.packetsSent} | PI SQLITE BUFFER: ${data.offlineQueueSize}`;
+      } catch (e) {}
+    }
+
+    setInterval(pollState, 1000);
+    pollState();
+
+    const ecgCanvas = document.getElementById('ecg-canvas');
+    const ecgCtx = ecgCanvas.getContext('2d');
+    const plethCanvas = document.getElementById('pleth-canvas');
+    const plethCtx = plethCanvas.getContext('2d');
+    const W = ecgCanvas.width;
+    const H1 = ecgCanvas.height;
+    const H2 = plethCanvas.height;
+    const ecgTrace = new Array(W).fill(H1 * 0.62);
+    const plethTrace = new Array(W).fill(H2 * 0.65);
+    let sweepX = 0;
+    let phase = 0;
+
+    function drawWaveforms() {
+      if (isRunning) {
+        const bps = Math.max(35, currentHr) / 60;
+        for (let s = 0; s < 3; s++) {
+          phase = (phase + bps / 65) % 1.0;
+          const p = 0.15 * Math.exp(-Math.pow(phase - 0.18, 2) / (2 * Math.pow(0.035, 2)));
+          const q = -0.15 * Math.exp(-Math.pow(phase - 0.35, 2) / (2 * Math.pow(0.012, 2)));
+          const r = 1.15 * Math.exp(-Math.pow(phase - 0.38, 2) / (2 * Math.pow(0.010, 2)));
+          const sw = -0.28 * Math.exp(-Math.pow(phase - 0.41, 2) / (2 * Math.pow(0.014, 2)));
+          const tw = 0.28 * Math.exp(-Math.pow(phase - 0.65, 2) / (2 * Math.pow(0.048, 2)));
+          const v = p + q + r + sw + tw + (Math.random() - 0.5) * 0.018;
+          ecgTrace[sweepX] = H1 * 0.66 - v * (H1 * 0.48);
+
+          const sysPeak = 0.75 * Math.exp(-Math.pow(phase - 0.45, 2) / (2 * Math.pow(0.07, 2)));
+          const dicNotch = 0.32 * Math.exp(-Math.pow(phase - 0.66, 2) / (2 * Math.pow(0.09, 2)));
+          const ampScale = Math.max(0.4, (currentSpo2 - 70) / 30);
+          plethTrace[sweepX] = H2 * 0.80 - (sysPeak + dicNotch) * ampScale * (H2 * 0.60);
+
+          sweepX = (sweepX + 1) % W;
+        }
+      }
+
+      ecgCtx.fillStyle = '#03060c';
+      ecgCtx.fillRect(0, 0, W, H1);
+      ecgCtx.strokeStyle = 'rgba(30, 58, 138, 0.18)';
+      ecgCtx.lineWidth = 1;
+      for (let gx = 0; gx < W; gx += 25) { ecgCtx.beginPath(); ecgCtx.moveTo(gx, 0); ecgCtx.lineTo(gx, H1); ecgCtx.stroke(); }
+      for (let gy = 0; gy < H1; gy += 25) { ecgCtx.beginPath(); ecgCtx.moveTo(0, gy); ecgCtx.lineTo(W, gy); ecgCtx.stroke(); }
+
+      ecgCtx.strokeStyle = currentStatus === 'CRITICAL' ? '#ef4444' : currentStatus === 'WARNING' ? '#f59e0b' : '#10b981';
+      ecgCtx.lineWidth = 2.1;
+      ecgCtx.beginPath();
+      for (let i = 0; i < W; i++) {
+        if (Math.abs(i - sweepX) < 16) continue;
+        if (i === 0 || Math.abs(i - 1 - sweepX) < 16) ecgCtx.moveTo(i, ecgTrace[i]);
+        else ecgCtx.lineTo(i, ecgTrace[i]);
+      }
+      ecgCtx.stroke();
+
+      plethCtx.fillStyle = '#03060c';
+      plethCtx.fillRect(0, 0, W, H2);
+      plethCtx.strokeStyle = 'rgba(30, 58, 138, 0.15)';
+      plethCtx.lineWidth = 1;
+      for (let gx = 0; gx < W; gx += 25) { plethCtx.beginPath(); plethCtx.moveTo(gx, 0); plethCtx.lineTo(gx, H2); plethCtx.stroke(); }
+      for (let gy = 0; gy < H2; gy += 25) { plethCtx.beginPath(); plethCtx.moveTo(0, gy); plethCtx.lineTo(W, gy); plethCtx.stroke(); }
+
+      plethCtx.strokeStyle = '#38bdf8';
+      plethCtx.lineWidth = 2.0;
+      plethCtx.beginPath();
+      for (let i = 0; i < W; i++) {
+        if (Math.abs(i - sweepX) < 16) continue;
+        if (i === 0 || Math.abs(i - 1 - sweepX) < 16) plethCtx.moveTo(i, plethTrace[i]);
+        else plethCtx.lineTo(i, plethTrace[i]);
+      }
+      plethCtx.stroke();
+
+      requestAnimationFrame(drawWaveforms);
+    }
+    requestAnimationFrame(drawWaveforms);
+  </script>
+</body>
+</html>

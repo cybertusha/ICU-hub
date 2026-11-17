@@ -1,0 +1,25 @@
+# Python cache & virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# Runtime SQLite databases & logs
+*.db
+*.db-wal
+*.db-shm
+*.log
+
+# Node dependencies & build artifacts
+node_modules/
+dist/
+
+# Sensitive AWS IoT Core X.509 certificates & private keys
+raspberry-pi-gateway/certs/
+*.pem
+*.key
+*.crt
+.env
+.env.*

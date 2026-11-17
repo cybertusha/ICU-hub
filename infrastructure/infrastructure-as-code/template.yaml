@@ -1,0 +1,142 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  ICUGuardian — Real-Time IoT-Based ICU Patient Monitoring System
+  AWS Cloud Infrastructure (IoT Core Rules, Lambda Functions, DynamoDB Tables, REST & WebSocket API Gateway)
+
+Globals:
+  Function:
+    Runtime: python3.10
+    Timeout: 15
+    MemorySize: 256
+    Environment:
+      Variables:
+        PATIENTS_TABLE: !Ref ICUPatientsTable
+        VITAL_READINGS_TABLE: !Ref ICUVitalReadingsTable
+        ALERTS_TABLE: !Ref ICUAlertsTable
+        DEVICES_TABLE: !Ref ICUDevicesTable
+        THRESHOLDS_TABLE: !Ref ICUThresholdsTable
+        WS_CONNECTIONS_TABLE: !Ref ICUWebSocketConnectionsTable
+
+Resources:
+  ICUPatientsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ICU_Patients
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: patientId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: patientId
+          KeyType: HASH
+
+  ICUVitalReadingsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ICU_VitalReadings
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: patientId
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: S
+      KeySchema:
+        - AttributeName: patientId
+          KeyType: HASH
+        - AttributeName: timestamp
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  ICUAlertsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ICU_Alerts
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: patientId
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: S
+      KeySchema:
+        - AttributeName: patientId
+          KeyType: HASH
+        - AttributeName: createdAt
+          KeyType: RANGE
+
+  ICUDevicesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ICU_Devices
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: deviceId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: deviceId
+          KeyType: HASH
+
+  ICUThresholdsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ICU_ThresholdConfigurations
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: configurationId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: configurationId
+          KeyType: HASH
+
+  ICUWebSocketConnectionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ICU_WebSocketConnections
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: connectionId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: connectionId
+          KeyType: HASH
+
+  ProcessVitalsLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ICU_ProcessVitalsLambda
+      CodeUri: ../../aws-cloud/lambda/process_vitals/
+      Handler: lambda_function.lambda_handler
+
+  ProcessAlertsLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ICU_ProcessAlertsLambda
+      CodeUri: ../../aws-cloud/lambda/process_alerts/
+      Handler: lambda_function.lambda_handler
+
+  DeviceStatusLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ICU_DeviceStatusLambda
+      CodeUri: ../../aws-cloud/lambda/device_status/
+      Handler: lambda_function.lambda_handler
+
+  WebSocketHandlerLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ICU_WebSocketHandlerLambda
+      CodeUri: ../../aws-cloud/lambda/websocket_handler/
+      Handler: lambda_function.lambda_handler
+
+  RouteVitalsTopicRule:
+    Type: AWS::IoT::TopicRule
+    Properties:
+      RuleName: ICU_RoutePatientVitalsRule
+      TopicRulePayload:
+        Sql: "SELECT *, topic() AS mqttTopic FROM 'icu/devices/+/vitals'"
+        RuleDisabled: false
+        Actions:
+          - Lambda:
+              FunctionArn: !GetAtt ProcessVitalsLambda.Arn

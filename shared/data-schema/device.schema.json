@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://icu-monitor-pro.hospital/schemas/device.schema.json",
+  "title": "Device",
+  "description": "Raspberry Pi Bedside IoT Gateway Device Entity & Telemetry Diagnostics",
+  "type": "object",
+  "required": [
+    "deviceId",
+    "deviceName",
+    "deviceStatus",
+    "lastSeen",
+    "firmwareVersion",
+    "operatingMode",
+    "assignedPatientId",
+    "createdAt"
+  ],
+  "properties": {
+    "deviceId": {
+      "type": "string",
+      "pattern": "^ICU-PI-[0-9]{3,}$"
+    },
+    "deviceName": {
+      "type": "string"
+    },
+    "deviceType": {
+      "type": "string",
+      "enum": ["raspberry-pi", "bedside-monitor"]
+    },
+    "location": {
+      "type": "string"
+    },
+    "ipAddress": {
+      "type": "string"
+    },
+    "macAddress": {
+      "type": "string"
+    },
+    "deviceStatus": {
+      "type": "string",
+      "enum": ["ONLINE", "OFFLINE", "MAINTENANCE", "ERROR"]
+    },
+    "uptime": {
+      "type": "string"
+    },
+    "lastSeen": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "firmwareVersion": {
+      "type": "string"
+    },
+    "operatingMode": {
+      "type": "string",
+      "enum": ["HARDWARE", "BEDSIDE_MONITOR", "SIMULATION"]
+    },
+    "assignedPatientId": {
+      "type": "string"
+    },
+    "bedNumber": {
+      "type": "string"
+    },
+    "offlineQueueSize": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "cpuTempC": {
+      "type": "number"
+    },
+    "cpuUsagePct": {
+      "type": "number"
+    },
+    "memoryUsagePct": {
+      "type": "number"
+    },
+    "latencyMs": {
+      "type": "number"
+    },
+    "sensorBusStatus": {
+      "type": "object",
+      "properties": {
+        "MAX30102_I2C": { "type": "string" },
+        "DS18B20_1WIRE": { "type": "string" },
+        "AD8232_SPI": { "type": "string" }
+      }
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}

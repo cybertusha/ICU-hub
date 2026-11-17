@@ -1,0 +1,36 @@
+{
+  "rules": [
+    {
+      "ruleName": "ICU_RoutePatientVitalsRule",
+      "topicRulePayload": {
+        "sql": "SELECT *, topic() AS mqttTopic, timestamp() AS awsReceivedAt FROM 'icu/devices/+/vitals'",
+        "description": "Routes incoming patient vital readings from Raspberry Pi gateways to ICU_ProcessVitalsLambda",
+        "awsIotSqlVersion": "2016-03-23",
+        "ruleDisabled": false,
+        "actions": [
+          {
+            "lambda": {
+              "functionArn": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:ICU_ProcessVitalsLambda"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "ruleName": "ICU_RouteDeviceStatusRule",
+      "topicRulePayload": {
+        "sql": "SELECT *, topic() AS mqttTopic, timestamp() AS awsReceivedAt FROM 'icu/devices/+/status'",
+        "description": "Routes Raspberry Pi heartbeat and LWT status messages to ICU_DeviceStatusLambda",
+        "awsIotSqlVersion": "2016-03-23",
+        "ruleDisabled": false,
+        "actions": [
+          {
+            "lambda": {
+              "functionArn": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:ICU_DeviceStatusLambda"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

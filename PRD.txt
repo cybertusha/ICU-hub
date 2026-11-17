@@ -1,0 +1,1721 @@
+# PRODUCT REQUIREMENTS DOCUMENT (PRD)
+
+# Real-Time IoT-Based ICU Patient Monitoring System with Raspberry Pi and AWS Cloud
+
+**Document Version:** 1.0  
+**Project Type:** IoT + Cloud Computing + Healthcare Technology  
+**Project Category:** Academic / Engineering Prototype  
+**Development Status:** Planned  
+**Target Platform:** Web Application + Raspberry Pi + AWS Cloud  
+**Primary Users:** Doctors, Healthcare Professionals, System Administrators  
+**Development Approach:** Modular, Cloud-Integrated, Offline-Resilient Architecture
+
+---
+
+# 1. EXECUTIVE SUMMARY
+
+## 1.1 Product Overview
+
+The Real-Time IoT-Based ICU Patient Monitoring System is an intelligent patient monitoring solution designed to continuously collect, process, transmit, visualize, and monitor patient vital signs using Internet of Things (IoT) technology and cloud computing.
+
+The system connects a bedside patient monitoring environment with a Raspberry Pi-based IoT gateway and AWS Cloud infrastructure. A centralized Doctor Web Application allows authorized medical personnel to monitor patient conditions remotely through real-time dashboards, historical graphs, and automated alerts.
+
+The project will initially operate in Demonstration Mode, where a computer simulates an ICU patient monitor and generates realistic patient vital readings. Raspberry Pi receives these readings, processes them, and securely transmits them to AWS Cloud.
+
+AWS processes and stores incoming patient data. The Doctor Dashboard receives real-time updates and generates alerts whenever configured monitoring thresholds are crossed.
+
+The architecture will also support future integration with actual medical sensors, allowing the demonstration prototype to evolve into a hardware-integrated monitoring system.
+
+## 1.2 Core Product Concept
+
+The system consists of five major components:
+
+1. **Bedside Patient Monitor:** A PC-based interface that simulates an ICU monitoring device and generates patient vital readings.
+2. **Raspberry Pi IoT Gateway:** Collects, validates, preprocesses, and securely transmits patient data.
+3. **AWS Cloud Infrastructure:** Processes incoming data, manages patient records, stores historical readings, and handles alerts.
+4. **Doctor Web Application:** Provides centralized patient monitoring, visualization, alert management, and historical analysis.
+5. **Real-Time Communication System:** Ensures automatic synchronization between the patient monitor, Raspberry Pi, AWS, and Doctor Dashboard.
+
+## 1.3 Product Vision
+
+To demonstrate an intelligent, reliable, and cloud-connected ICU patient monitoring ecosystem that enables continuous patient vital monitoring, centralized data access, automated abnormality detection, and timely notification through IoT and cloud technologies.
+
+---
+
+# 2. PROBLEM STATEMENT
+
+Traditional patient monitoring environments often depend on bedside monitoring equipment and require healthcare professionals to be physically present to observe patient conditions.
+
+Monitoring multiple patients simultaneously can become challenging, especially when patient information is distributed across different monitoring devices.
+
+Additionally, manually observing vital signs may delay the identification of abnormal conditions, and conventional monitoring setups may not provide centralized historical patient information or remote access.
+
+There is a need for an integrated monitoring solution that can:
+
+- Continuously collect patient vital signs.
+- Transmit patient information to a centralized platform.
+- Allow doctors to monitor patients remotely.
+- Automatically identify abnormal vital readings.
+- Generate timely alerts when configured thresholds are crossed.
+- Maintain patient monitoring records.
+- Support reliable communication during temporary internet interruptions.
+
+The proposed system addresses these challenges through an IoT-based monitoring gateway, AWS Cloud infrastructure, and a centralized Doctor Web Application.
+
+**Note:** The prototype demonstrates these capabilities using simulated patient data. It is not intended for clinical diagnosis or treatment.
+
+---
+
+# 3. PRODUCT OBJECTIVES
+
+The primary objectives of the project are:
+
+1. Develop a functional ICU patient monitoring simulation environment.
+2. Implement a Raspberry Pi-based IoT gateway.
+3. Establish secure communication between Raspberry Pi and AWS IoT Core.
+4. Implement real-time patient data transmission.
+5. Store patient information and historical readings in AWS DynamoDB.
+6. Develop a professional Doctor Web Dashboard.
+7. Implement automated patient abnormality detection.
+8. Generate real-time alerts based on configurable thresholds.
+9. Provide historical patient monitoring and trend visualization.
+10. Implement device connectivity monitoring.
+11. Demonstrate offline-first data collection and synchronization.
+12. Build a modular architecture that supports future sensor integration.
+13. Deliver a reliable, presentation-ready end-to-end prototype.
+
+## 3.1 Success Criteria
+
+The project will be considered functionally successful when:
+
+- The PC generates continuously changing simulated patient readings.
+- Raspberry Pi successfully receives and validates the readings.
+- Raspberry Pi securely publishes data to AWS IoT Core.
+- AWS processes and stores the incoming readings.
+- The Doctor Dashboard displays updated readings automatically.
+- Abnormal readings generate corresponding alerts.
+- Doctors can acknowledge and resolve alerts.
+- Historical readings are available for analysis.
+- Device disconnection is detected.
+- Buffered readings synchronize after connectivity is restored.
+- All major demonstration scenarios work successfully.
+
+---
+
+# 4. TARGET USERS AND USER ROLES
+
+## 4.1 Doctor
+
+The doctor is the primary user of the monitoring application.
+
+**Responsibilities:**
+- Log in securely.
+- View registered patients.
+- Monitor active ICU patients.
+- View real-time vital signs.
+- Open individual patient monitoring pages.
+- Observe ECG waveform visualization.
+- Analyze historical patient trends.
+- Receive abnormality alerts.
+- Acknowledge alerts.
+- Resolve alerts.
+- Review patient monitoring history.
+
+## 4.2 System Administrator
+
+The administrator manages the technical configuration of the system.
+
+**Responsibilities:**
+- Manage doctor accounts.
+- Register and manage patient records.
+- Configure Raspberry Pi devices.
+- Monitor device connectivity.
+- Configure demonstration thresholds.
+- Manage system settings.
+- Review system logs.
+- Monitor cloud communication status.
+
+## 4.3 Demonstration Operator
+
+The demonstration operator controls the simulated ICU environment.
+
+**Responsibilities:**
+- Start and stop the patient simulator.
+- Select patient simulation scenarios.
+- Generate abnormal patient conditions.
+- Monitor data transmission status.
+- Demonstrate connectivity interruptions.
+- Demonstrate patient recovery.
+- Operate the bedside monitoring interface.
+
+---
+
+# 5. PRODUCT SCOPE
+
+## 5.1 In-Scope Features
+
+The first version will include:
+
+- PC-based ICU patient monitoring simulator.
+- Multiple simulated patient conditions.
+- Raspberry Pi IoT gateway.
+- Simulation Mode and Hardware Mode architecture.
+- MQTT communication.
+- AWS IoT Core integration.
+- AWS Lambda processing.
+- AWS DynamoDB storage.
+- API Gateway integration.
+- Real-time dashboard communication.
+- Doctor authentication.
+- Patient management.
+- Live patient monitoring.
+- ECG waveform visualization.
+- Historical monitoring charts.
+- Automated alert generation.
+- Alert acknowledgment and resolution.
+- Device connectivity monitoring.
+- Offline data buffering.
+- Automatic reconnection and synchronization.
+- Deployment documentation.
+- Testing and demonstration documentation.
+
+## 5.2 Out-of-Scope Features
+
+The following are not included in the initial academic prototype:
+
+- Actual clinical diagnosis.
+- Medical treatment recommendations.
+- Automatic medicine prescription.
+- Certified medical-device functionality.
+- Integration with hospital electronic health record systems.
+- Direct emergency-service integration.
+- Production-grade hospital deployment.
+- Regulatory certification.
+- Clinical decision-making based on simulated readings.
+
+These may be considered in future versions subject to appropriate medical, security, and regulatory requirements.
+
+---
+
+# 6. HIGH-LEVEL SYSTEM ARCHITECTURE
+
+## 6.1 Architecture Overview
+
+The system follows an IoT-to-Cloud architecture.
+
+**Complete Data Flow:**
+
+Dummy ICU Environment → Raspberry Pi → AWS IoT Core → AWS IoT Rules → AWS Lambda → Amazon DynamoDB → Real-Time Communication → Doctor Dashboard.
+
+## 6.2 Component Architecture
+
+### Component 1: Bedside ICU Patient Monitor
+
+**Platform:** PC / Web Application
+
+The PC acts as a simulated bedside patient monitoring device.
+
+It continuously generates realistic-looking patient vital readings.
+
+The interface displays:
+
+- Heart Rate (BPM)
+- SpO2 (%)
+- Body Temperature (°C)
+- Respiratory Rate (breaths/min)
+- ECG Waveform
+- Patient ID
+- Patient Name
+- Monitoring Status
+- Current Timestamp
+- Simulator Connection Status
+
+**Functional Requirements:**
+
+- FR-001: The system shall generate continuously updating simulated vital readings.
+- FR-002: The system shall display patient readings in real time.
+- FR-003: The system shall provide selectable patient simulation scenarios.
+- FR-004: The system shall support starting and stopping the simulator.
+- FR-005: The system shall transmit readings to Raspberry Pi through a local network interface.
+- FR-006: The system shall clearly identify simulated data.
+- FR-007: The system shall display communication status.
+- FR-008: The system shall allow the demonstration operator to change patient scenarios during runtime.
+
+### Supported Simulation Scenarios
+
+**1. Normal Patient**
+- Heart rate within the configured normal demonstration range.
+- Normal SpO2.
+- Normal temperature.
+- Normal respiratory rate.
+- Stable ECG visualization.
+
+**2. High Heart Rate**
+- Heart rate increases above the configured threshold.
+- Heart rate trend updates.
+- Appropriate warning or critical alert is generated according to configured rules.
+
+**3. Low SpO2**
+- Oxygen saturation decreases.
+- Patient status changes according to configured thresholds.
+- Appropriate alert is generated.
+
+**4. High Temperature**
+- Body temperature increases.
+- Temperature trend updates.
+- Alert is generated when the configured threshold is crossed.
+
+**5. Abnormal Respiratory Rate**
+- Respiratory rate moves outside the configured demonstration range.
+- The system detects the abnormal reading.
+- The dashboard receives an appropriate alert.
+
+**6. Critical Patient Condition**
+- Multiple vital parameters may enter configured critical ranges.
+- Patient monitoring status changes to critical.
+- Multiple relevant alerts can be generated.
+
+**7. Recovery Scenario**
+- Patient readings return to configured acceptable ranges.
+- The monitoring system detects recovery.
+- Existing alert history is retained.
+
+---
+
+### Component 2: Raspberry Pi IoT Gateway
+
+**Platform:** Raspberry Pi  
+**Programming Language:** Python  
+**Communication Protocol:** MQTT over TLS
+
+Raspberry Pi acts as the intermediary between the bedside patient monitoring environment and AWS Cloud.
+
+It is responsible for receiving, processing, validating, buffering, and securely transmitting patient monitoring data.
+
+#### Functional Requirements
+
+- FR-009: Raspberry Pi shall receive patient readings from the PC through a local network API or MQTT.
+- FR-010: The gateway shall validate incoming patient data.
+- FR-011: The gateway shall filter invalid or malformed readings.
+- FR-012: The gateway shall attach timestamps and device identifiers.
+- FR-013: The gateway shall preprocess incoming data.
+- FR-014: The gateway shall publish structured JSON messages to AWS IoT Core.
+- FR-015: The gateway shall monitor its cloud connection.
+- FR-016: The gateway shall automatically reconnect after connectivity restoration.
+- FR-017: The gateway shall log communication errors.
+- FR-018: The gateway shall support offline data buffering.
+- FR-019: The gateway shall synchronize buffered readings when internet connectivity returns.
+- FR-020: The gateway shall support future sensor integration.
+
+#### Operating Modes
+
+**Mode 1: Simulation Mode**
+
+- Receive simulated readings from the PC.
+- Validate incoming readings.
+- Process the data.
+- Publish readings to AWS IoT Core.
+
+**Mode 2: Hardware Mode**
+
+- Read data from connected sensors through suitable hardware interfaces.
+- Validate sensor measurements.
+- Process incoming data.
+- Publish measurements to AWS IoT Core.
+
+The sensor layer must be modular so additional sensors can be integrated without redesigning the entire application.
+
+#### Recommended Python Modules
+
+- `main.py` – Main gateway execution.
+- `sensor_manager.py` – Sensor communication.
+- `data_processor.py` – Data validation and preprocessing.
+- `mqtt_client.py` – AWS IoT MQTT communication.
+- `simulator_receiver.py` – PC simulator communication.
+- `offline_queue.py` – Local data buffering and synchronization.
+- `connectivity_manager.py` – Internet and cloud connection monitoring.
+- `config.py` – Configuration management.
+- `logger.py` – Logging and error management.
+
+---
+
+### Component 3: AWS Cloud Infrastructure
+
+**Cloud Provider:** Amazon Web Services
+
+AWS will provide the cloud infrastructure required for receiving, processing, storing, and distributing patient monitoring information.
+
+#### A. AWS IoT Core
+
+Purpose: Secure communication between Raspberry Pi and AWS Cloud.
+
+Requirements:
+
+- Register Raspberry Pi as an AWS IoT Thing.
+- Generate and configure device certificates.
+- Establish secure MQTT communication.
+- Configure IoT policies.
+- Create device-specific MQTT topics.
+- Authenticate incoming messages.
+- Monitor device connectivity.
+
+Suggested MQTT Topics:
+
+`icu/devices/{deviceId}/vitals`
+
+`icu/devices/{deviceId}/status`
+
+`icu/patients/{patientId}/alerts`
+
+`icu/devices/{deviceId}/commands`
+
+#### B. AWS IoT Rules
+
+Purpose: Route incoming MQTT messages to cloud processing services.
+
+Requirements:
+
+- Receive patient vital messages.
+- Validate topic and message structure.
+- Trigger AWS Lambda processing.
+- Route device status updates.
+- Handle invalid message conditions.
+
+#### C. AWS Lambda
+
+Purpose: Serverless processing of patient monitoring information.
+
+Responsibilities:
+
+- Receive incoming readings.
+- Validate message fields.
+- Check timestamps and message identifiers.
+- Process patient vital data.
+- Apply configurable threshold rules.
+- Generate alert events.
+- Store patient readings.
+- Update patient monitoring status.
+- Handle duplicate messages.
+- Publish updates to the real-time communication layer.
+
+#### D. Amazon DynamoDB
+
+Purpose: Store patient information, monitoring readings, alerts, and device status.
+
+**Recommended Tables:**
+
+1. `Patients`
+2. `VitalReadings`
+3. `Alerts`
+4. `Devices`
+5. `ThresholdConfigurations`
+6. `Users` (if not using a managed authentication service)
+
+Suggested data organization:
+
+- Patients: Partition key `patientId`.
+- VitalReadings: Partition key `patientId`, sort key `timestamp`.
+- Alerts: Partition key `patientId`, sort key `alertTimestamp`.
+- Devices: Partition key `deviceId`.
+- ThresholdConfigurations: Partition key `configurationId`.
+
+Additional indexes should support queries by date, patient, alert status, and device.
+
+#### E. Amazon API Gateway
+
+Purpose: Provide secure APIs for the Doctor Web Application.
+
+Required API operations:
+
+- Authenticate users.
+- Retrieve patients.
+- Retrieve individual patient information.
+- Retrieve historical readings.
+- Retrieve alerts.
+- Acknowledge alerts.
+- Resolve alerts.
+- Retrieve device status.
+- Update permitted monitoring configurations.
+
+#### F. Real-Time Communication
+
+Use API Gateway WebSocket or another suitable secure real-time communication mechanism.
+
+Requirements:
+
+- Deliver new patient readings.
+- Deliver newly generated alerts.
+- Update device connectivity status.
+- Maintain authenticated connections.
+- Handle disconnected clients.
+- Re-establish connections when possible.
+
+---
+
+# 7. DOCTOR WEB APPLICATION
+
+## 7.1 Technology Stack
+
+**Frontend:**
+- React.js
+- TypeScript
+- Tailwind CSS
+- Recharts
+- Responsive UI components
+
+**Backend:**
+- AWS Lambda-based APIs or Python FastAPI.
+
+**Cloud Infrastructure:**
+- AWS IoT Core
+- AWS Lambda
+- Amazon DynamoDB
+- API Gateway
+
+**Authentication:**
+- AWS Cognito or another secure authentication implementation.
+
+**Real-Time Communication:**
+- API Gateway WebSocket.
+
+The final architecture should minimize unnecessary backend complexity and keep the system modular.
+
+## 7.2 Application Navigation
+
+The application should provide the following navigation structure:
+
+1. Dashboard
+2. Patients
+3. Live Monitoring
+4. Alerts
+5. Historical Data
+6. Devices
+7. Settings
+8. User Profile
+9. Logout
+
+## 7.3 Doctor Authentication
+
+Requirements:
+
+- FR-021: The system shall provide a secure doctor login page.
+- FR-022: Users shall authenticate before accessing protected patient information.
+- FR-023: The system shall maintain authenticated sessions.
+- FR-024: The system shall support role-based authorization where appropriate.
+- FR-025: Users shall be able to log out securely.
+- FR-026: Protected APIs shall validate user permissions.
+
+## 7.4 Main Dashboard
+
+The dashboard provides a centralized overview of ICU monitoring operations.
+
+**Dashboard Statistics:**
+
+- Total Registered Patients.
+- Active ICU Patients.
+- Normal Patients.
+- Patients Requiring Attention.
+- Critical Patients.
+- Connected Raspberry Pi Devices.
+
+**Dashboard Components:**
+
+- Patient overview cards.
+- Live monitoring status.
+- Recent patient alerts.
+- Critical patient section.
+- Device connectivity overview.
+- Recent monitoring activity.
+- Vital parameter summary.
+
+Requirements:
+
+- FR-027: Dashboard statistics shall update when relevant data changes.
+- FR-028: Patient cards shall show the latest available readings.
+- FR-029: The dashboard shall distinguish normal, warning, and critical conditions.
+- FR-030: Users shall be able to navigate to individual patient details.
+
+## 7.5 Live Patient Monitoring
+
+Every patient shall have a dedicated monitoring card.
+
+**Displayed Information:**
+
+- Patient ID.
+- Patient Name.
+- Heart Rate.
+- SpO2.
+- Temperature.
+- Respiratory Rate.
+- Patient Status.
+- Device Connection Status.
+- Last Updated Timestamp.
+
+**Status Indicators:**
+
+- GREEN – Normal.
+- YELLOW – Warning.
+- RED – Critical.
+
+Requirements:
+
+- FR-031: Patient readings shall update automatically.
+- FR-032: The system shall display the latest valid readings.
+- FR-033: The system shall indicate stale or unavailable readings.
+- FR-034: Patient status shall reflect the configured monitoring rules.
+- FR-035: The dashboard shall visually distinguish different severity levels.
+
+## 7.6 Individual Patient Monitoring Page
+
+When a doctor selects a patient, the system shall display a detailed monitoring interface.
+
+**Patient Information:**
+- Patient ID.
+- Patient Name.
+- Monitoring Device ID.
+- Monitoring Status.
+- Device Connection Status.
+
+**Live Vital Cards:**
+- Heart Rate.
+- SpO2.
+- Temperature.
+- Respiratory Rate.
+
+**Live Graphs:**
+- ECG waveform visualization.
+- Heart rate trend.
+- SpO2 trend.
+- Temperature trend.
+- Respiratory rate trend.
+
+**Additional Sections:**
+- Historical readings.
+- Patient monitoring timeline.
+- Active alerts.
+- Previous alerts.
+- Device connectivity information.
+
+Requirements:
+
+- FR-036: The system shall provide individual patient monitoring pages.
+- FR-037: The system shall update patient charts as new readings arrive.
+- FR-038: The system shall display historical readings.
+- FR-039: The system shall display active patient alerts.
+- FR-040: The system shall show device connectivity information.
+
+**ECG Limitation:** In Simulation Mode, the ECG waveform is generated for demonstration and visualization. It is not a clinically validated ECG measurement.
+
+---
+
+# 8. AUTOMATED ALERT MANAGEMENT SYSTEM
+
+## 8.1 Overview
+
+The Alert Management System identifies abnormal patient readings based on configurable monitoring thresholds.
+
+Alert generation must happen through validated backend processing rather than frontend-only animations.
+
+## 8.2 Initial Demonstration Thresholds
+
+The following values are example demonstration thresholds:
+
+| Parameter | Example Warning Condition |
+|---|---|
+| Heart Rate | Below 60 or above 100 BPM |
+| SpO2 | Below 94% |
+| Temperature | Above 38°C |
+| Respiratory Rate | Below 12 or above 20 breaths/min |
+
+These thresholds are configurable demonstration values, not universal clinical standards.
+
+## 8.3 Alert Severity
+
+**INFO**
+- Informational events.
+- Device status updates.
+- Monitoring-related notifications.
+
+**WARNING**
+- A configured warning threshold has been crossed.
+- The patient requires attention according to demonstration rules.
+
+**CRITICAL**
+- A configured critical condition has been detected.
+- Immediate attention is indicated within the demonstration environment.
+
+The exact severity mapping must be configurable.
+
+## 8.4 Alert Data Structure
+
+Every alert shall contain:
+
+- Alert ID.
+- Patient ID.
+- Parameter Name.
+- Detected Value.
+- Configured Threshold.
+- Alert Severity.
+- Timestamp.
+- Alert Description.
+- Acknowledgment Status.
+- Resolution Status.
+
+## 8.5 Alert Functionalities
+
+- FR-041: The system shall automatically generate alerts when configured conditions are met.
+- FR-042: Alerts shall be stored in DynamoDB.
+- FR-043: Alerts shall be delivered to the dashboard in real time.
+- FR-044: The system shall provide critical alert sound notifications.
+- FR-045: Doctors shall be able to acknowledge alerts.
+- FR-046: Doctors shall be able to resolve alerts.
+- FR-047: The system shall maintain alert history.
+- FR-048: Users shall be able to filter alerts by patient and severity.
+- FR-049: The system shall prevent excessive duplicate alerts.
+- FR-050: The system shall detect recovery conditions.
+- FR-051: Resolved alerts shall remain available in historical records.
+
+## 8.6 Duplicate Alert Prevention
+
+Implement:
+
+- Alert cooldown periods.
+- Repeated-event detection.
+- Existing active alert checks.
+- Recovery detection.
+- New alert generation after a configured recurrence condition.
+
+Example:
+
+If SpO2 remains below a configured threshold for several consecutive readings, the system should avoid generating a new notification for every incoming reading.
+
+When the value returns to an acceptable range, the system records the recovery event and updates the alert lifecycle.
+
+## 8.7 Alert Lifecycle
+
+1. Reading received.
+2. Reading validated.
+3. Threshold evaluated.
+4. Alert condition detected.
+5. Alert generated.
+6. Alert stored.
+7. Real-time notification delivered.
+8. Doctor acknowledges alert.
+9. Condition recovers.
+10. Doctor resolves alert.
+11. Alert remains in historical records.
+
+Acknowledgment and resolution must be separate operations.
+
+---
+
+# 9. HISTORICAL PATIENT MONITORING
+
+The system shall provide historical access to patient monitoring readings.
+
+## 9.1 Time Filters
+
+- Last 1 Hour.
+- Last 6 Hours.
+- Last 24 Hours.
+- Custom Date Range.
+
+## 9.2 Historical Data Features
+
+- Historical heart rate.
+- Historical SpO2.
+- Historical temperature.
+- Historical respiratory rate.
+- Trend charts.
+- Monitoring timeline.
+- Alert history.
+- Device connectivity history.
+
+Requirements:
+
+- FR-052: Users shall be able to retrieve historical readings.
+- FR-053: Users shall be able to filter readings by time.
+- FR-054: The system shall visualize historical trends.
+- FR-055: Historical readings shall be retrieved from cloud storage.
+- FR-056: The system shall support custom date ranges.
+- FR-057: Historical data shall remain distinguishable from live readings.
+
+---
+
+# 10. REAL-TIME DATA COMMUNICATION
+
+## 10.1 Data Pipeline
+
+The complete communication process shall follow these steps:
+
+**Step 1:** PC generates simulated patient readings.
+
+**Step 2:** PC transfers readings to Raspberry Pi through a local network API or MQTT.
+
+**Step 3:** Raspberry Pi validates the incoming information.
+
+**Step 4:** Raspberry Pi adds device identifiers, timestamps, and message IDs.
+
+**Step 5:** Raspberry Pi publishes the structured JSON message to AWS IoT Core using MQTT over TLS.
+
+**Step 6:** AWS IoT Rules route the incoming message to AWS Lambda.
+
+**Step 7:** AWS Lambda validates, processes, and evaluates the readings.
+
+**Step 8:** Processed data is stored in DynamoDB.
+
+**Step 9:** The real-time communication layer distributes updates to authenticated dashboard clients.
+
+**Step 10:** Doctor Dashboard updates patient readings, charts, and alerts automatically.
+
+## 10.2 Standard JSON Message Structure
+
+All components shall use a consistent data format.
+
+Example:
+
+```json
+{
+  "messageId": "MSG-000001",
+  "deviceId": "ICU-PI-001",
+  "patientId": "PATIENT-001",
+  "timestamp": "2026-11-16T10:30:00Z",
+  "mode": "SIMULATION",
+  "vitals": {
+    "heartRate": 82,
+    "spo2": 98,
+    "temperature": 36.8,
+    "respiratoryRate": 18,
+    "ecg": []
+  }
+}
+```
+
+## 10.3 Data Validation
+
+The system shall validate:
+
+- Required fields.
+- Data types.
+- Patient identifiers.
+- Device identifiers.
+- Timestamp format.
+- Valid numerical values.
+- Message identifiers.
+- Data source mode.
+
+Invalid messages shall be rejected or quarantined and logged.
+
+Duplicate messages shall not create duplicate historical records or alerts.
+
+## 10.4 Real-Time Dashboard Updates
+
+The dashboard shall not depend on manual browser refreshes.
+
+It shall receive:
+
+- New patient readings.
+- Updated patient status.
+- New alerts.
+- Alert status changes.
+- Device connection updates.
+
+The system shall handle temporary disconnections and re-establish communication when possible.
+
+---
+
+# 11. OFFLINE-FIRST RELIABILITY
+
+## 11.1 Overview
+
+Offline-first reliability is a key architectural requirement.
+
+The system must continue local monitoring and data logging even when the internet connection is temporarily unavailable.
+
+The Raspberry Pi will maintain a local buffer for readings that cannot be transmitted to AWS.
+
+## 11.2 Offline Operation
+
+When internet connectivity is lost:
+
+1. The PC simulator continues generating patient readings.
+2. Raspberry Pi continues receiving local data.
+3. Local validation and preprocessing continue.
+4. Patient readings are stored in a persistent local queue.
+5. Local logging continues.
+6. Local monitoring interfaces continue functioning.
+7. Cloud connection status changes to offline.
+8. AWS transmission is temporarily suspended.
+
+## 11.3 Automatic Recovery
+
+When internet connectivity is restored:
+
+1. Raspberry Pi detects network availability.
+2. MQTT connection is re-established.
+3. Device authentication is performed.
+4. Buffered messages are retrieved.
+5. Pending messages are published to AWS.
+6. Successfully transmitted messages are marked as synchronized.
+7. The Doctor Dashboard receives new cloud updates.
+8. Device status returns to connected.
+
+## 11.4 Reliability Requirements
+
+- FR-058: Local patient data collection shall continue during internet interruptions.
+- FR-059: Raspberry Pi shall persistently buffer unsent readings.
+- FR-060: The gateway shall automatically attempt reconnection.
+- FR-061: Buffered readings shall synchronize after reconnection.
+- FR-062: Duplicate message processing shall be prevented.
+- FR-063: Synchronization failures shall be logged.
+- FR-064: The system shall display device connectivity status.
+
+**Important:** Offline-first operation guarantees local continuity only within the available local hardware and storage capabilities. Remote dashboard updates are unavailable while cloud connectivity is interrupted unless a separate local dashboard connection is implemented.
+
+---
+
+# 12. USER INTERFACE AND DESIGN REQUIREMENTS
+
+## 12.1 Design Philosophy
+
+The application should resemble a professional hospital monitoring platform.
+
+The design must prioritize readability, information hierarchy, accessibility, and rapid interpretation of monitoring information.
+
+## 12.2 Visual Direction
+
+- Dark navy or charcoal monitoring interface.
+- Professional medical dashboard aesthetics.
+- High-contrast vital cards.
+- Clear typography.
+- Minimal unnecessary decoration.
+- Consistent spacing.
+- Responsive layouts.
+- Clear status indicators.
+- Smooth but restrained transitions.
+- Real-time chart visualization.
+
+## 12.3 Main UI Screens
+
+1. Login Page.
+2. Main Dashboard.
+3. Patient List.
+4. Individual Patient Monitoring.
+5. Live ECG Visualization.
+6. Historical Monitoring.
+7. Alert Management.
+8. Device Management.
+9. Configuration Settings.
+10. User Profile.
+
+## 12.4 UI Functional Requirements
+
+- Every major button must perform its intended action.
+- Loading indicators shall be displayed during asynchronous operations.
+- Errors shall be communicated clearly.
+- Empty states shall be designed.
+- Connection status shall remain visible.
+- Critical alerts shall be visually prominent.
+- Charts shall display meaningful timestamps.
+- Simulated data shall always be clearly identified.
+
+---
+
+# 13. NON-FUNCTIONAL REQUIREMENTS
+
+## 13.1 Performance
+
+- Patient readings should update without manual refresh.
+- The system should minimize unnecessary processing.
+- Dashboard charts should handle continuous updates efficiently.
+- Historical queries should use appropriate database indexes.
+- The system should support multiple patient monitoring cards.
+
+## 13.2 Reliability
+
+- Automatic MQTT reconnection.
+- Persistent offline data buffering.
+- Duplicate message prevention.
+- Error handling.
+- Application logging.
+- Recovery after temporary service interruptions.
+
+## 13.3 Security
+
+- MQTT over TLS.
+- Device certificate authentication.
+- AWS IoT policies.
+- Secure API authentication.
+- Role-based access control.
+- Environment-based configuration.
+- Secure session management.
+- No AWS credentials in frontend code.
+- Access restrictions for patient records.
+
+## 13.4 Maintainability
+
+- Modular code organization.
+- Reusable frontend components.
+- Separate hardware and simulation layers.
+- Consistent API contracts.
+- Centralized configuration.
+- Documentation for all major modules.
+
+## 13.5 Scalability
+
+The architecture should allow future expansion to:
+
+- Multiple Raspberry Pi devices.
+- Multiple simulated or connected patients.
+- Additional monitoring parameters.
+- Additional sensor modules.
+- Multiple doctor accounts.
+- Larger historical datasets.
+
+## 13.6 Data Integrity
+
+- Consistent timestamps.
+- Unique message identifiers.
+- Input validation.
+- Duplicate detection.
+- Accurate patient-device mapping.
+- Persistent storage of accepted readings.
+
+---
+
+# 14. SYSTEM DATA MANAGEMENT
+
+## 14.1 Patient Entity
+
+Fields:
+
+- patientId
+- patientName
+- age (optional demo field)
+- gender (optional demo field)
+- bedNumber
+- monitoringDeviceId
+- monitoringStatus
+- createdAt
+- updatedAt
+
+Only fictional demonstration identities should be used.
+
+## 14.2 Vital Reading Entity
+
+Fields:
+
+- messageId
+- patientId
+- deviceId
+- timestamp
+- heartRate
+- spo2
+- temperature
+- respiratoryRate
+- ecgData
+- operatingMode
+
+## 14.3 Alert Entity
+
+Fields:
+
+- alertId
+- patientId
+- parameter
+- detectedValue
+- threshold
+- severity
+- description
+- createdAt
+- acknowledged
+- acknowledgedBy
+- acknowledgedAt
+- resolved
+- resolvedBy
+- resolvedAt
+
+## 14.4 Device Entity
+
+Fields:
+
+- deviceId
+- deviceName
+- deviceStatus
+- lastSeen
+- firmwareVersion
+- operatingMode
+- assignedPatientId
+- createdAt
+
+## 14.5 Data Retention
+
+Historical readings and alert records shall be retained according to a configurable demonstration retention policy.
+
+DynamoDB indexes and optional TTL settings should be designed according to the intended data retention and query requirements.
+
+---
+
+# 15. HARDWARE REQUIREMENTS
+
+## 15.1 Required Hardware
+
+- One computer for the bedside patient monitor.
+- One Raspberry Pi.
+- Raspberry Pi power supply.
+- Internet connection.
+- Local network connectivity.
+- Optional sensors for future Hardware Mode.
+- Optional second computer or mobile device for Doctor Dashboard demonstration.
+
+## 15.2 Hardware Responsibilities
+
+**PC:**
+Runs the simulated bedside ICU monitor.
+
+**Raspberry Pi:**
+Acts as the local IoT gateway.
+
+**Optional Sensors:**
+Provide actual measurements in future Hardware Mode.
+
+**Second Device:**
+Runs the Doctor Dashboard.
+
+## 15.3 Future Sensor Integration
+
+The architecture should support adding compatible sensors for:
+
+- Heart rate.
+- Oxygen saturation.
+- Temperature.
+- Respiratory rate.
+- ECG.
+
+Actual sensor selection and electrical interfacing must be determined separately based on the Raspberry Pi model, sensor interface, voltage requirements, and hardware specifications.
+
+---
+
+# 16. SOFTWARE REQUIREMENTS
+
+## 16.1 Patient Monitor
+
+- React.js or equivalent frontend.
+- TypeScript.
+- Tailwind CSS.
+- Patient simulation engine.
+- Local communication API.
+
+## 16.2 Raspberry Pi
+
+- Python 3.
+- MQTT client library.
+- AWS IoT Device SDK or compatible MQTT implementation.
+- Local persistent storage.
+- Logging framework.
+- Network communication library.
+
+## 16.3 AWS Cloud
+
+- AWS IoT Core.
+- AWS IoT Rules.
+- AWS Lambda.
+- Amazon DynamoDB.
+- API Gateway.
+- API Gateway WebSocket.
+- AWS Cognito (recommended for authentication).
+
+## 16.4 Doctor Dashboard
+
+- React.js.
+- TypeScript.
+- Tailwind CSS.
+- Recharts.
+- API integration layer.
+- WebSocket client.
+- Authentication module.
+
+---
+
+# 17. PROJECT DEVELOPMENT PHASES
+
+The project shall be developed incrementally.
+
+## PHASE 1: SYSTEM ARCHITECTURE AND PLANNING
+
+**Objectives:**
+- Finalize technical architecture.
+- Define module responsibilities.
+- Define data communication protocols.
+- Define MQTT topics.
+- Design JSON schemas.
+- Create project folder structure.
+- Define database schemas.
+
+**Deliverables:**
+- Architecture diagram.
+- Data flow diagram.
+- Database design.
+- MQTT topic specification.
+- Project structure.
+
+**Completion Criteria:**
+All major components and their communication interfaces are clearly defined.
+
+## PHASE 2: PATIENT MONITOR AND SIMULATION
+
+**Objectives:**
+- Develop the bedside monitoring interface.
+- Implement simulation engine.
+- Implement patient scenario switching.
+- Implement vital cards.
+- Implement ECG visualization.
+- Establish local communication.
+
+**Deliverables:**
+- Working patient monitor.
+- Scenario simulation engine.
+- Local API.
+- Simulator documentation.
+
+**Completion Criteria:**
+The PC generates and transmits changing patient readings successfully.
+
+## PHASE 3: RASPBERRY PI GATEWAY
+
+**Objectives:**
+- Develop Python gateway.
+- Implement local data reception.
+- Implement validation.
+- Implement preprocessing.
+- Implement MQTT communication.
+- Implement offline buffering.
+- Implement reconnection.
+
+**Deliverables:**
+- Raspberry Pi Python application.
+- MQTT integration.
+- Local persistent queue.
+- Device connectivity monitoring.
+
+**Completion Criteria:**
+Raspberry Pi successfully receives patient readings and can publish them to AWS IoT Core.
+
+## PHASE 4: AWS CLOUD INTEGRATION
+
+**Objectives:**
+- Configure AWS IoT Core.
+- Register Raspberry Pi.
+- Configure certificates.
+- Configure MQTT policies.
+- Create IoT Rules.
+- Develop Lambda functions.
+- Create DynamoDB tables.
+- Configure API Gateway.
+- Implement real-time communication.
+
+**Deliverables:**
+- AWS infrastructure.
+- Cloud processing functions.
+- Database configuration.
+- API endpoints.
+- Real-time communication layer.
+
+**Completion Criteria:**
+AWS successfully receives, processes, stores, and distributes patient readings.
+
+## PHASE 5: DOCTOR WEB APPLICATION
+
+**Objectives:**
+- Develop doctor login.
+- Develop main dashboard.
+- Develop patient management views.
+- Develop live monitoring.
+- Develop individual patient pages.
+- Develop ECG and trend graphs.
+- Implement alert management.
+- Implement historical monitoring.
+
+**Deliverables:**
+- Responsive Doctor Dashboard.
+- Authentication.
+- Patient monitoring.
+- Alert management.
+- Historical charts.
+
+**Completion Criteria:**
+Doctors can access patient information and monitor real-time updates through the application.
+
+## PHASE 6: END-TO-END INTEGRATION
+
+**Objectives:**
+- Connect the simulator to Raspberry Pi.
+- Connect Raspberry Pi to AWS.
+- Connect AWS to the Doctor Dashboard.
+- Validate complete data flow.
+- Test abnormality detection.
+- Test alert acknowledgment.
+- Test recovery detection.
+- Test offline buffering.
+- Test automatic synchronization.
+
+**Deliverables:**
+- Integrated working prototype.
+- Integration test report.
+- Error handling documentation.
+
+**Completion Criteria:**
+The complete data pipeline works successfully from the PC simulator to the Doctor Dashboard.
+
+## PHASE 7: PRESENTATION AND DEPLOYMENT
+
+**Objectives:**
+- Prepare the demonstration environment.
+- Configure all required hardware.
+- Verify AWS services.
+- Prepare demonstration scenarios.
+- Create installation documentation.
+- Create troubleshooting instructions.
+- Prepare presentation material.
+
+**Deliverables:**
+- Final working prototype.
+- Setup guide.
+- Deployment guide.
+- Demonstration script.
+- Architecture documentation.
+- Final testing checklist.
+
+**Completion Criteria:**
+The system is ready for a live technical college demonstration.
+
+---
+
+# 18. PRESENTATION AND DEMONSTRATION WORKFLOW
+
+The application must support a structured live demonstration.
+
+## DEMO 1: NORMAL PATIENT MONITORING
+
+1. Start the bedside patient monitor.
+2. Select Normal Patient scenario.
+3. Generate simulated patient readings.
+4. Raspberry Pi receives the readings.
+5. Raspberry Pi publishes readings to AWS.
+6. AWS processes and stores the data.
+7. Doctor Dashboard receives real-time updates.
+8. Patient status displays NORMAL.
+
+**Expected Result:** The complete data pipeline works successfully.
+
+## DEMO 2: LOW SpO2 CONDITION
+
+1. Open the patient simulator.
+2. Select Low SpO2 scenario.
+3. Oxygen saturation decreases.
+4. Raspberry Pi receives updated readings.
+5. AWS processes incoming messages.
+6. The configured threshold is crossed.
+7. A critical alert is generated according to the demonstration configuration.
+8. Doctor Dashboard displays the alert.
+9. Critical notification sound plays.
+10. Patient status changes accordingly.
+
+**Expected Result:** Automated abnormality detection and real-time alert generation work successfully.
+
+## DEMO 3: HIGH HEART RATE
+
+1. Select High Heart Rate scenario.
+2. Heart rate increases.
+3. Raspberry Pi transmits the readings.
+4. AWS processes the readings.
+5. Doctor Dashboard updates the heart rate card.
+6. Trend chart updates automatically.
+7. Alert is generated when configured rules are satisfied.
+
+**Expected Result:** Real-time monitoring and threshold detection work successfully.
+
+## DEMO 4: PATIENT RECOVERY
+
+1. Change the scenario to Normal Patient.
+2. Patient readings return to acceptable configured ranges.
+3. The system detects recovery.
+4. Current patient status updates.
+5. Earlier alert remains in alert history.
+6. Doctor acknowledges and resolves the alert.
+
+**Expected Result:** Recovery detection and alert lifecycle work successfully.
+
+## DEMO 5: INTERNET DISCONNECTION
+
+1. Disconnect Raspberry Pi from the internet.
+2. Keep the PC simulator and local network communication running.
+3. Raspberry Pi continues collecting readings.
+4. Unsent readings are stored locally.
+5. Cloud connection status becomes offline.
+6. Restore internet connectivity.
+7. Raspberry Pi reconnects automatically.
+8. Buffered messages synchronize with AWS.
+9. Doctor Dashboard receives synchronized readings.
+
+**Expected Result:** Offline data buffering and synchronization work successfully.
+
+---
+
+# 19. TESTING AND QUALITY ASSURANCE
+
+## 19.1 Unit Testing
+
+Test individual modules:
+
+- Patient simulation engine.
+- Data validation.
+- Vital preprocessing.
+- MQTT publishing.
+- Offline queue.
+- Alert generation.
+- Database operations.
+- API endpoints.
+- Dashboard components.
+
+## 19.2 Integration Testing
+
+Verify:
+
+- PC to Raspberry Pi communication.
+- Raspberry Pi to AWS IoT Core communication.
+- IoT Rules to Lambda integration.
+- Lambda to DynamoDB integration.
+- Backend to WebSocket communication.
+- WebSocket to Doctor Dashboard updates.
+
+## 19.3 Functional Testing
+
+Verify:
+
+- Doctor login.
+- Patient listing.
+- Live vital updates.
+- Historical data.
+- Alert generation.
+- Alert acknowledgment.
+- Alert resolution.
+- Patient recovery.
+- Device connectivity status.
+
+## 19.4 Offline Testing
+
+Verify:
+
+- Internet disconnection detection.
+- Local data collection.
+- Persistent buffering.
+- Automatic reconnection.
+- Message synchronization.
+- Duplicate prevention.
+- Recovery after application restart.
+
+## 19.5 Security Testing
+
+Verify:
+
+- Invalid login rejection.
+- Unauthorized API access rejection.
+- IoT certificate authentication.
+- MQTT policy restrictions.
+- Input validation.
+- Secure configuration handling.
+- Patient data access permissions.
+
+## 19.6 End-to-End Acceptance Checklist
+
+- [ ] PC patient simulator starts successfully.
+- [ ] All six abnormal and normal scenarios work.
+- [ ] Patient readings update continuously.
+- [ ] Raspberry Pi receives simulator data.
+- [ ] Raspberry Pi validates incoming readings.
+- [ ] AWS IoT Core receives MQTT messages.
+- [ ] Lambda processes incoming messages.
+- [ ] DynamoDB stores historical readings.
+- [ ] Doctor Dashboard displays live readings.
+- [ ] Graphs update automatically.
+- [ ] Alerts are generated correctly.
+- [ ] Alert sound works for critical demonstration events.
+- [ ] Doctors can acknowledge alerts.
+- [ ] Doctors can resolve alerts.
+- [ ] Patient recovery is detected.
+- [ ] Device connectivity status works.
+- [ ] Offline buffering works.
+- [ ] Automatic synchronization works.
+- [ ] Application handles invalid messages.
+- [ ] Documentation is complete.
+
+---
+
+# 20. PROJECT DIRECTORY STRUCTURE
+
+The project shall follow a modular structure.
+
+```text
+icu-monitoring-system/
+│
+├── patient-monitor-pc/
+│   ├── frontend/
+│   │   ├── src/
+│   │   │   ├── components/
+│   │   │   ├── pages/
+│   │   │   ├── simulator/
+│   │   │   ├── services/
+│   │   │   └── types/
+│   │   └── package.json
+│   │
+│   ├── simulator/
+│   └── README.md
+│
+├── raspberry-pi-gateway/
+│   ├── main.py
+│   ├── sensor_manager.py
+│   ├── data_processor.py
+│   ├── mqtt_client.py
+│   ├── simulator_receiver.py
+│   ├── offline_queue.py
+│   ├── connectivity_manager.py
+│   ├── config.py
+│   ├── logger.py
+│   └── requirements.txt
+│
+├── aws-cloud/
+│   ├── iot-core/
+│   ├── lambda/
+│   │   ├── process_vitals/
+│   │   ├── process_alerts/
+│   │   └── device_status/
+│   ├── dynamodb/
+│   ├── api-gateway/
+│   ├── websocket/
+│   └── deployment/
+│
+├── doctor-dashboard/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── layouts/
+│   │   ├── services/
+│   │   ├── hooks/
+│   │   ├── charts/
+│   │   ├── context/
+│   │   └── types/
+│   ├── public/
+│   └── package.json
+│
+├── shared/
+│   └── data-schema/
+│       ├── patient.schema.json
+│       ├── vitals.schema.json
+│       ├── alert.schema.json
+│       └── device.schema.json
+│
+├── infrastructure/
+│   ├── infrastructure-as-code/
+│   └── deployment-scripts/
+│
+├── documentation/
+│   ├── architecture.md
+│   ├── api-documentation.md
+│   ├── database-design.md
+│   ├── setup-guide.md
+│   ├── hardware-guide.md
+│   ├── testing-guide.md
+│   └── demo-guide.md
+│
+└── README.md
+```
+
+---
+
+# 21. DEPLOYMENT REQUIREMENTS
+
+## 21.1 Local Deployment
+
+The PC patient monitor shall run locally.
+
+Raspberry Pi shall run the Python IoT gateway.
+
+Both devices shall communicate through a local network.
+
+## 21.2 AWS Deployment
+
+AWS infrastructure shall be configured before the complete cloud demonstration.
+
+Deployment shall include:
+
+- IoT Thing registration.
+- Device certificate configuration.
+- IoT policies.
+- MQTT topic configuration.
+- IoT Rules.
+- Lambda deployment.
+- DynamoDB tables.
+- API Gateway endpoints.
+- WebSocket configuration.
+- Authentication configuration.
+
+Infrastructure should be deployable through repeatable scripts or infrastructure-as-code wherever practical.
+
+## 21.3 Doctor Dashboard Deployment
+
+The Doctor Dashboard shall be deployed to a suitable hosting platform.
+
+It must securely connect to the configured AWS APIs and real-time communication endpoint.
+
+Environment variables shall be used for public endpoint configuration.
+
+Sensitive credentials and private certificates must never be included in frontend code.
+
+---
+
+# 22. EXPECTED FINAL DELIVERABLES
+
+The development team must provide:
+
+1. Complete PC bedside monitoring application.
+2. Patient data simulation engine.
+3. Multiple working simulation scenarios.
+4. Complete Raspberry Pi Python gateway.
+5. Simulation Mode implementation.
+6. Modular Hardware Mode architecture.
+7. MQTT communication implementation.
+8. AWS IoT Core configuration.
+9. AWS IoT Rules configuration.
+10. AWS Lambda source code.
+11. DynamoDB database configuration.
+12. API Gateway implementation.
+13. Real-time WebSocket implementation.
+14. Doctor authentication system.
+15. Complete Doctor Dashboard.
+16. Live patient monitoring.
+17. ECG waveform visualization.
+18. Historical patient monitoring.
+19. Automated alert generation.
+20. Alert acknowledgment and resolution.
+21. Device connectivity monitoring.
+22. Offline data buffering.
+23. Automatic reconnection and synchronization.
+24. Complete source code.
+25. Setup and deployment documentation.
+26. Hardware connection documentation.
+27. API and database documentation.
+28. Integration testing report.
+29. End-to-end testing checklist.
+30. College presentation demonstration guide.
+
+---
+
+# 23. RISKS AND MITIGATION STRATEGY
+
+| Potential Risk | Mitigation |
+|---|---|
+| Internet disconnection | Local persistent buffering and automatic reconnection |
+| Raspberry Pi connection failure | Connectivity monitoring and retry logic |
+| Invalid patient readings | Input validation and rejection |
+| Duplicate MQTT messages | Unique message IDs and idempotent processing |
+| Excessive alerts | Cooldown and repeated-event handling |
+| AWS configuration errors | Deployment documentation and configuration validation |
+| Dashboard disconnection | WebSocket reconnection and data refresh |
+| Data loss during power failure | Persistent local storage and controlled synchronization |
+| Incorrect patient-device mapping | Explicit device-patient assignment validation |
+| Hardware integration difficulty | Modular sensor abstraction layer |
+
+---
+
+# 24. FUTURE ENHANCEMENTS
+
+Potential future improvements include:
+
+- Integration with actual biomedical sensors.
+- Support for multiple ICU beds.
+- Centralized multi-hospital monitoring.
+- Mobile application for doctors.
+- Additional vital-sign parameters.
+- Secure hospital system integration.
+- Advanced historical analytics.
+- Device fleet management.
+- Configurable notification channels.
+- Enhanced audit logging.
+- More sophisticated signal-processing capabilities.
+
+Any future clinical application would require separate clinical validation, security assessment, regulatory review, and appropriate medical-device certification.
+
+---
+
+# 25. FINAL PRODUCT ACCEPTANCE CRITERIA
+
+The project will be accepted as a completed academic prototype when all of the following conditions are satisfied:
+
+**1. Functional Completeness**
+
+All major modules must be implemented and integrated.
+
+**2. End-to-End Communication**
+
+Patient readings must travel successfully from the PC simulator through Raspberry Pi and AWS to the Doctor Dashboard.
+
+**3. Real-Time Monitoring**
+
+The Doctor Dashboard must automatically display incoming readings without manual refresh.
+
+**4. Automated Alerting**
+
+The backend must detect configured abnormal conditions and generate alerts.
+
+**5. Historical Monitoring**
+
+Patient readings and alerts must be stored and retrievable.
+
+**6. Offline Reliability**
+
+Raspberry Pi must continue local collection and buffer unsent data during internet interruptions.
+
+**7. Security**
+
+Device communication and dashboard APIs must use appropriate authentication and authorization.
+
+**8. Demonstration Readiness**
+
+All required demonstration scenarios must work reliably.
+
+**9. Documentation**
+
+Installation, deployment, architecture, testing, and demonstration instructions must be provided.
+
+**10. Code Quality**
+
+The implementation must be modular, maintainable, documented, and testable.
+
+---
+
+# 26. FINAL PRODUCT VISION
+
+The final product will be a complete IoT-based ICU patient monitoring demonstration ecosystem.
+
+A PC will simulate the bedside ICU patient monitoring device and generate patient vital readings.
+
+A Raspberry Pi will operate as the IoT gateway, collecting and processing incoming information before securely transmitting it to AWS Cloud.
+
+AWS will receive, validate, process, and store the patient monitoring information.
+
+The Doctor Web Application will provide a centralized interface for real-time patient monitoring, historical visualization, device connectivity tracking, and automated alert management.
+
+The system will demonstrate how IoT and cloud computing can be combined to build an intelligent, connected, and offline-resilient patient monitoring architecture.
+
+**Ultimate Goal:**
+
+To develop a fully functional, modular, secure, and presentation-ready IoT-based ICU Patient Monitoring System that demonstrates the complete integration of simulated patient monitoring, Raspberry Pi hardware, AWS Cloud infrastructure, real-time data visualization, and automated alert generation.
+
+---
+
+**IMPORTANT SAFETY DISCLAIMER**
+
+This project is an academic demonstration prototype. It is not a certified medical device and must not be used for actual patient diagnosis, treatment, or clinical decision-making.
+
+All simulated patient readings, ECG waveforms, thresholds, and alerts are intended exclusively for software development, testing, and educational demonstration purposes.

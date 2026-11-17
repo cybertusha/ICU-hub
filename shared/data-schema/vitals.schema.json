@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://icu-monitor-pro.hospital/schemas/vitals.schema.json",
+  "title": "VitalReading",
+  "description": "Real-time ICU vital-sign telemetry message from Bedside Monitor / Sensors -> Raspberry Pi Gateway -> AWS IoT Core",
+  "type": "object",
+  "required": [
+    "messageId",
+    "deviceId",
+    "patientId",
+    "timestamp",
+    "mode",
+    "vitals"
+  ],
+  "properties": {
+    "messageId": {
+      "type": "string",
+      "minLength": 6
+    },
+    "deviceId": {
+      "type": "string",
+      "pattern": "^ICU-PI-[0-9]{3,}$"
+    },
+    "patientId": {
+      "type": "string",
+      "pattern": "^PATIENT-[0-9]{3,}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["HARDWARE", "BEDSIDE_MONITOR", "SIMULATION"]
+    },
+    "signalProfile": {
+      "type": "string"
+    },
+    "bufferedOffline": {
+      "type": "boolean",
+      "default": false
+    },
+    "vitals": {
+      "type": "object",
+      "required": [
+        "heartRate",
+        "spo2",
+        "temperature",
+        "respiratoryRate",
+        "ecg"
+      ],
+      "properties": {
+        "heartRate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 300
+        },
+        "spo2": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "temperature": {
+          "type": "number",
+          "minimum": 25.0,
+          "maximum": 45.0
+        },
+        "respiratoryRate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "bloodPressure": {
+          "type": "object",
+          "required": ["systolic", "diastolic"],
+          "properties": {
+            "systolic": { "type": "number", "minimum": 30, "maximum": 300 },
+            "diastolic": { "type": "number", "minimum": 20, "maximum": 200 }
+          }
+        },
+        "ecg": {
+          "type": "array",
+          "items": { "type": "number" },
+          "maxItems": 250
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,36 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["iot:Connect"],
+      "Resource": [
+        "arn:aws:iot:${AWS::Region}:${AWS::AccountId}:client/ICU-PI-*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["iot:Publish"],
+      "Resource": [
+        "arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/icu/devices/${iot:Connection.Thing.ThingName}/vitals",
+        "arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/icu/devices/${iot:Connection.Thing.ThingName}/status"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["iot:Subscribe"],
+      "Resource": [
+        "arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topicfilter/icu/devices/${iot:Connection.Thing.ThingName}/commands",
+        "arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topicfilter/icu/patients/*/alerts"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["iot:Receive"],
+      "Resource": [
+        "arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/icu/devices/${iot:Connection.Thing.ThingName}/commands",
+        "arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/icu/patients/*/alerts"
+      ]
+    }
+  ]
+}

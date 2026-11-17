@@ -1,0 +1,10 @@
+{
+  "name": "ICUGuardian — Mobile Clinician Station",
+  "short_name": "ICUGuardian",
+  "description": "Real-Time Remote ICU Patient Telemetry, Waveform & Alert Application for Physicians and Critical Care Nurses",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#070d19",
+  "theme_color": "#09090f",
+  "orientation": "portrait-primary"
+}
