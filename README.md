@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # ICUGuardian — Real-Time IoT-Based ICU Patient Monitoring System
 
 End-to-end hospital ICU patient monitoring platform integrating bedside multiparameter sensor acquisition, Raspberry Pi edge IoT gateways, AWS Cloud serverless processing, and a centralized real-time clinician web station.
@@ -45,3 +46,6 @@ python3 raspberry-pi-gateway/main.py --self-test
 # Run full End-to-End Production Integration Test Suite
 python3 infrastructure/deployment-scripts/e2e_integration_test.py
 ```
+=======
+# ICU
+>>>>>>> 87ef45b649c3dcd27bf14d7ea1175eb3880d7250
