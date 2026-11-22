@@ -162,6 +162,11 @@ def dynamodb_put_item(table_name: str, item: Dict[str, Any], region: str, ak: Op
     return dynamodb_call("PutItem", {"TableName": table_name, "Item": ddb_item}, region, ak, sk)
 
 
+def dynamodb_delete_item(table_name: str, key: Dict[str, Any], region: str, ak: Optional[str] = None, sk: Optional[str] = None) -> Tuple[int, Dict[str, Any]]:
+    ddb_key = {k: to_ddb_attr(v) for k, v in key.items()}
+    return dynamodb_call("DeleteItem", {"TableName": table_name, "Key": ddb_key}, region, ak, sk)
+
+
 def verify_sts_identity(ak: str, sk: str) -> Dict[str, Any]:
     status, body = aws_sigv4_request(
         method="POST",

@@ -1303,6 +1303,14 @@
               const p = STATE.patients.find(x => x.monitoringDeviceId === dev.deviceId);
               if (p) p.deviceStatus = dev.deviceStatus;
               if (!STATE.modalContent && STATE.activePage === 'devices') renderApp();
+            } else if (msg.event === 'PATIENT_DISCHARGED') {
+              const disc = msg.data;
+              STATE.patients = STATE.patients.filter(x => x.patientId !== disc.patientId);
+              if (STATE.selectedPatientId === disc.patientId) {
+                STATE.selectedPatientId = STATE.patients[0]?.patientId || 'PATIENT-001';
+                if (STATE.activePage === 'patient-detail') STATE.activePage = 'dashboard';
+              }
+              if (!STATE.modalContent) renderApp();
             }
           } catch (e) {}
         };
@@ -1668,6 +1676,53 @@
       });
       STATE.modalContent = null;
       showToast('Chart Updated', `Updated clinical profile for ${patientId}`);
+      await fetchAllData();
+    }
+
+    function openDischargePatientModal(patientId) {
+      const p = STATE.patients.find(x => x.patientId === patientId);
+      if (!p) return;
+      STATE.modalContent = `
+        <div style="font-size:16px;font-weight:700;margin-bottom:4px;color:var(--crit-text);">Discharge / Remove Patient from ICU</div>
+        <div style="font-size:12.5px;color:var(--text-secondary);margin-bottom:14px;">
+          Confirm clinical recovery or transfer for <strong>${p.patientName}</strong> (<span class="mono-tag">${p.bedNumber}</span> • <span class="mono-tag">${p.mrn || p.patientId}</span>).
+          This releases the bedside telemetry slot and removes the active patient record from the ICU census and Amazon DynamoDB (<code>ICU_Patients</code>).
+        </div>
+        <form onsubmit="event.preventDefault(); submitDischargePatient('${p.patientId}', this);">
+          <div class="field">
+            <label>Discharge Disposition / Clinical Reason</label>
+            <select class="input" name="reason">
+              <option value="Recovered — Discharged to General Ward">Recovered — Transfer to Step-Down / General Ward</option>
+              <option value="Recovered — Discharged Home">Recovered — Discharged Home in Stable Condition</option>
+              <option value="Transferred to Specialty Unit">Transferred to Specialty Care Unit</option>
+              <option value="Administrative Census Removal">Administrative / Duplicate Record Removal</option>
+            </select>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+            <button type="button" class="btn" onclick="STATE.modalContent=null;renderApp();">Cancel</button>
+            <button type="submit" class="btn btn-danger">Confirm Discharge & Remove</button>
+          </div>
+        </form>
+      `;
+      renderApp();
+    }
+
+    async function submitDischargePatient(patientId, form) {
+      const p = STATE.patients.find(x => x.patientId === patientId);
+      const reason = form?.reason?.value || 'Recovered — Discharged from ICU';
+      await fetch(`${API_BASE}/patients/${patientId}/discharge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reason,
+          actor: STATE.user?.fullName || 'Dr. Sarah Smith'
+        })
+      });
+      STATE.modalContent = null;
+      if (STATE.selectedPatientId === patientId) {
+        STATE.activePage = 'dashboard';
+      }
+      showToast('Patient Discharged', `Removed ${p ? p.patientName : patientId} from ICU census & DynamoDB.`);
       await fetchAllData();
     }
 
@@ -2083,7 +2138,10 @@
                         </td>
                         <td id="row-sync-${p.patientId}" class="tabular" style="color:var(--text-muted);font-size:12px;">${formatTimeAgo(p.updatedAt)}</td>
                         <td style="text-align:right;">
-                          <button class="btn btn-xs" onclick="openPatientMonitor('${p.patientId}')">Telemetry →</button>
+                          <div style="display:inline-flex;gap:6px;">
+                            <button class="btn btn-xs" onclick="openPatientMonitor('${p.patientId}')">Telemetry →</button>
+                            <button class="btn btn-xs btn-danger" onclick="openDischargePatientModal('${p.patientId}')">Discharge</button>
+                          </div>
                         </td>
                       </tr>
                     `;
@@ -2140,9 +2198,12 @@
                       </div>
                     </div>
 
-                    <div style="padding:8px 12px;display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:var(--text-muted);">
-                      <span>${p.condition}</span>
-                      <button class="btn btn-xs" onclick="openPatientMonitor('${p.patientId}')">Open Chart</button>
+                    <div style="padding:8px 12px;display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11.5px;color:var(--text-muted);">
+                      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.condition}</span>
+                      <div style="display:inline-flex;gap:6px;flex-shrink:0;">
+                        <button class="btn btn-xs" onclick="openPatientMonitor('${p.patientId}')">Open Chart</button>
+                        <button class="btn btn-xs btn-danger" onclick="openDischargePatientModal('${p.patientId}')">Discharge</button>
+                      </div>
                     </div>
                   </div>
                 `;
@@ -2238,6 +2299,9 @@
             </button>
             <button class="btn btn-xs" onclick="exportPatientData('${p.patientId}')">
               ${ICONS.download}<span>Export JSON</span>
+            </button>
+            <button class="btn btn-xs btn-danger" onclick="openDischargePatientModal('${p.patientId}')">
+              <span>Discharge Patient</span>
             </button>
           </div>
         </div>

@@ -35,7 +35,25 @@ from urllib.parse import parse_qs
 sys.path.insert(0, str(Path(__file__).parent))
 sys.path.insert(0, str(Path(__file__).parent / "lambda" / "process_alerts"))
 from lambda_function import evaluate_vital_thresholds, DEFAULT_THRESHOLDS
-from aws_sigv4 import dynamodb_put_item
+from aws_sigv4 import dynamodb_put_item, dynamodb_delete_item
+
+
+def _auto_load_env_aws() -> None:
+    env_file = Path(__file__).resolve().parent.parent / ".env.aws"
+    if not env_file.exists():
+        return
+    for line in env_file.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[len("export ") :]
+        if "=" in line:
+            k, v = line.split("=", 1)
+            os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+
+
+_auto_load_env_aws()
 
 DB_FILE = Path(__file__).parent / "icu_cloud_state.db"
 GATEWAY_CONTROL_URL = os.environ.get("GATEWAY_CONTROL_URL", "http://127.0.0.1:5050")
@@ -46,9 +64,9 @@ PASSWORD_SALT = b"icu-monitor-pro-pbkdf2-salt-v1"
 
 class DynamoDBMirrorWorker:
     """
-    Zero-dependency asynchronous background writer that mirrors real-time vitals,
-    alerts, patients, and Raspberry Pi gateway status to Amazon DynamoDB via AWS SigV4
-    when AWS_DYNAMODB_ENABLED=true.
+    Zero-dependency asynchronous and immediate writer that mirrors real-time vitals,
+    admitted/edited patients, alerts, users, thresholds, and Raspberry Pi gateway status
+    to Amazon DynamoDB via AWS SigV4 when AWS_DYNAMODB_ENABLED=true.
     """
     def __init__(self) -> None:
         self.enabled = os.environ.get("AWS_DYNAMODB_ENABLED", "").lower() == "true"
@@ -60,6 +78,69 @@ class DynamoDBMirrorWorker:
             print(f"[AWS DynamoDB] Live cloud mirroring ENABLED in region {self.region} (Zero-Dependency AWS SigV4)")
         else:
             self.enabled = False
+
+    def put_record(self, table_name: str, item: Dict[str, Any], immediate: bool = True) -> None:
+        if not self.enabled:
+            return
+        if immediate:
+            try:
+                st, resp = dynamodb_put_item(table_name, item, self.region)
+                if st == 200:
+                    return
+                print(f"[AWS DynamoDB] PutItem({table_name}) HTTP {st}: {resp}")
+            except Exception as exc:
+                print(f"[AWS DynamoDB] Immediate PutItem({table_name}) error: {exc}")
+        try:
+            self.queue.put_nowait({"_rawTable": table_name, "_rawItem": item})
+        except Exception:
+            pass
+
+    def delete_patient(self, patient_id: str) -> None:
+        if not self.enabled or not patient_id:
+            return
+        try:
+            st, resp = dynamodb_delete_item("ICU_Patients", {"patientId": patient_id}, self.region)
+            if st != 200:
+                print(f"[AWS DynamoDB] DeleteItem(ICU_Patients, {patient_id}) HTTP {st}: {resp}")
+        except Exception as exc:
+            print(f"[AWS DynamoDB] DeleteItem(ICU_Patients, {patient_id}) error: {exc}")
+
+    def sync_patient_dict(self, p: Optional[Dict[str, Any]], immediate: bool = True) -> None:
+        if not self.enabled or not p:
+            return
+        v = p.get("vitals") or {}
+        bp = v.get("bloodPressure") or {"systolic": 120, "diastolic": 80}
+        self.put_record(
+            "ICU_Patients",
+            {
+                "patientId": p["patientId"],
+                "mrn": p.get("mrn", p["patientId"]),
+                "name": p["patientName"],
+                "patientName": p["patientName"],
+                "age": int(p.get("age", 50)),
+                "gender": str(p.get("gender", "M")),
+                "bedNumber": p["bedNumber"],
+                "diagnosis": p.get("condition", ""),
+                "condition": p.get("condition", ""),
+                "attendingPhysician": p.get("attendingPhysician", "Dr. Sarah Smith"),
+                "primaryNurse": p.get("primaryNurse", "Nurse Michael Jones"),
+                "assignedDeviceId": p.get("monitoringDeviceId", "ICU-PI-001"),
+                "status": p.get("monitoringStatus", "NORMAL"),
+                "allergies": p.get("allergies", []),
+                "currentMedications": p.get("currentMedications", []),
+                "careNotes": p.get("careNotes", []),
+                "alertsEnabled": bool(p.get("alertsEnabled", True)),
+                "heartRate": round(float(v.get("heartRate", 75)), 1),
+                "spo2": round(float(v.get("spo2", 98)), 1),
+                "systolicBP": round(float(bp.get("systolic", 120)), 1),
+                "diastolicBP": round(float(bp.get("diastolic", 80)), 1),
+                "temperature": round(float(v.get("temperature", 36.7)), 1),
+                "respiratoryRate": round(float(v.get("respiratoryRate", 16)), 1),
+                "admittedAt": p.get("admittedAt", datetime.now(timezone.utc).isoformat()),
+                "updatedAt": p.get("updatedAt", datetime.now(timezone.utc).isoformat()),
+            },
+            immediate=immediate,
+        )
 
     def enqueue_telemetry(
         self,
@@ -100,6 +181,10 @@ class DynamoDBMirrorWorker:
             except Empty:
                 continue
             try:
+                if "_rawTable" in item:
+                    dynamodb_put_item(item["_rawTable"], item["_rawItem"], self.region)
+                    continue
+
                 bp = item["vitals"].get("bloodPressure", {})
                 sbp = round(float(bp.get("systolic", 120)), 1)
                 dbp = round(float(bp.get("diastolic", 80)), 1)
@@ -972,6 +1057,11 @@ class CloudDatabaseManager:
             finally:
                 conn.close()
         self.record_audit(actor, "Admin", "UPDATE_THRESHOLDS", "DEFAULT_DEMO_THRESHOLDS", "Updated clinical alarm threshold parameters")
+        DDB_MIRROR.put_record(
+            "ICU_ThresholdConfigurations",
+            {"configurationId": "DEFAULT_DEMO_THRESHOLDS", **merged},
+            immediate=True,
+        )
         return merged
 
     def reset_thresholds(self) -> Dict[str, Any]:
@@ -1276,7 +1366,9 @@ class CloudDatabaseManager:
             finally:
                 conn.close()
         self.record_audit(actor, "Doctor", "ADMIT_PATIENT", pid, f"Admitted {name} to {bed}")
-        return self.get_patient_detail(pid)
+        detail = self.get_patient_detail(pid)
+        DDB_MIRROR.sync_patient_dict(detail, immediate=True)
+        return detail
 
     def update_patient(self, patient_id: str, data: Dict[str, Any], actor: str = "Dr. Sarah Smith") -> Optional[Dict[str, Any]]:
         now_iso = datetime.now(timezone.utc).isoformat()
@@ -1321,7 +1413,9 @@ class CloudDatabaseManager:
             finally:
                 conn.close()
         self.record_audit(actor, "Doctor", "UPDATE_PATIENT", patient_id, f"Updated clinical record for {patient_id}")
-        return self.get_patient_detail(patient_id)
+        detail = self.get_patient_detail(patient_id)
+        DDB_MIRROR.sync_patient_dict(detail, immediate=True)
+        return detail
 
     def add_care_note(self, patient_id: str, author: str, role: str, note_text: str) -> Optional[Dict[str, Any]]:
         now_iso = datetime.now(timezone.utc).isoformat()
@@ -1348,7 +1442,38 @@ class CloudDatabaseManager:
             finally:
                 conn.close()
         self.record_audit(author, role, "ADD_CLINICAL_NOTE", patient_id, note_text[:80])
-        return self.get_patient_detail(patient_id)
+        detail = self.get_patient_detail(patient_id)
+        DDB_MIRROR.sync_patient_dict(detail, immediate=True)
+        return detail
+
+    def discharge_patient(self, patient_id: str, reason: str = "Recovered — Discharged from ICU", actor: str = "Dr. Sarah Smith") -> Optional[Dict[str, Any]]:
+        now_iso = datetime.now(timezone.utc).isoformat()
+        with self.lock:
+            conn = self._connect()
+            try:
+                row = conn.execute("SELECT * FROM patients WHERE patientId = ?", (patient_id,)).fetchone()
+                if not row:
+                    return None
+                patient_name = row["patientName"]
+                bed_number = row["bedNumber"]
+                conn.execute("DELETE FROM patients WHERE patientId = ?", (patient_id,))
+                conn.execute(
+                    "UPDATE alerts SET resolved = 1, resolvedBy = ?, resolvedAt = ? WHERE patientId = ? AND resolved = 0",
+                    (actor, now_iso, patient_id),
+                )
+                conn.commit()
+            finally:
+                conn.close()
+        self.record_audit(actor, "Doctor", "DISCHARGE_PATIENT", patient_id, f"Discharged {patient_name} ({bed_number}): {reason}")
+        DDB_MIRROR.delete_patient(patient_id)
+        return {
+            "patientId": patient_id,
+            "patientName": patient_name,
+            "bedNumber": bed_number,
+            "status": "DISCHARGED",
+            "reason": reason,
+            "dischargedAt": now_iso,
+        }
 
     def get_patient_detail(self, patient_id: str) -> Optional[Dict[str, Any]]:
         patients = self.list_patients()
@@ -1603,6 +1728,7 @@ class CloudDatabaseManager:
             finally:
                 conn.close()
         self.record_audit(actor, "Admin", "REGISTER_DEVICE", dev_id, f"Registered gateway {dev_id} ({ip})")
+        DDB_MIRROR.put_record("ICU_Devices", res, immediate=True)
         return res
 
     def update_device_status(
@@ -1737,7 +1863,7 @@ class CloudDatabaseManager:
             finally:
                 conn.close()
         self.record_audit("Admin", "Admin", "CREATE_USER", user_id, f"Created staff account {full_name} ({role})")
-        return {
+        user_record = {
             "userId": user_id,
             "username": username,
             "fullName": full_name,
@@ -1749,6 +1875,8 @@ class CloudDatabaseManager:
             "active": True,
             "lastLogin": now_iso,
         }
+        DDB_MIRROR.put_record("ICU_Users", user_record, immediate=True)
+        return user_record
 
     def toggle_user_status(self, user_id: str, active: bool) -> Optional[Dict[str, Any]]:
         with self.lock:
@@ -1915,6 +2043,30 @@ class CloudDatabaseManager:
 
 DB = CloudDatabaseManager()
 ACTIVE_WEBSOCKETS: Set[asyncio.Queue] = set()
+
+
+def _initial_dynamodb_full_sync() -> None:
+    if not DDB_MIRROR.enabled:
+        return
+    try:
+        patients = DB.list_patients()
+        for p in patients:
+            DDB_MIRROR.sync_patient_dict(p, immediate=False)
+        for d in DB.list_devices():
+            DDB_MIRROR.put_record("ICU_Devices", d, immediate=False)
+        for u in DB.list_users():
+            DDB_MIRROR.put_record("ICU_Users", u, immediate=False)
+        DDB_MIRROR.put_record(
+            "ICU_ThresholdConfigurations",
+            {"configurationId": "DEFAULT_DEMO_THRESHOLDS", **DB.get_thresholds()},
+            immediate=False,
+        )
+        print(f"[AWS DynamoDB] Queued startup sync for {len(patients)} ICU patients, devices, users, and thresholds.")
+    except Exception as exc:
+        print(f"[AWS DynamoDB] Startup sync warning: {exc}")
+
+
+_initial_dynamodb_full_sync()
 
 
 async def broadcast_ws_event(event_type: str, data: Any) -> None:
@@ -2170,6 +2322,21 @@ async def app(scope, receive, send):
                 return
             await broadcast_ws_event("PATIENT_UPDATED", updated)
             await send_json_response(send, 200, updated)
+            return
+
+        if path.startswith("/api/patients/") and (method == "DELETE" or (path.endswith("/discharge") and method == "POST")):
+            patient_id = path.strip("/").split("/")[2]
+            body = await read_json_body(receive) if method in ("POST", "DELETE") else {}
+            discharged = DB.discharge_patient(
+                patient_id,
+                reason=body.get("reason", "Recovered — Discharged from ICU"),
+                actor=body.get("actor", "Dr. Sarah Smith"),
+            )
+            if not discharged:
+                await send_json_response(send, 404, {"error": "Patient not found"})
+                return
+            await broadcast_ws_event("PATIENT_DISCHARGED", discharged)
+            await send_json_response(send, 200, discharged)
             return
 
         if path.startswith("/api/patients/") and method == "PATCH":
