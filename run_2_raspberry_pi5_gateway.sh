@@ -9,6 +9,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "$SCRIPT_DIR/.env.aws" ]]; then
+  # shellcheck disable=SC1091
+  source "$SCRIPT_DIR/.env.aws"
+  echo "[AWS IoT Core] Loaded live AWS configuration from .env.aws (${AWS_IOT_ENDPOINT:-})"
+fi
 CLOUD_SERVER_IP="${1:-192.168.50.10}"
 
 export DEVICE_ID="ICU-PI-001"

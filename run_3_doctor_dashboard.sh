@@ -8,6 +8,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "$SCRIPT_DIR/.env.aws" ]]; then
+  # shellcheck disable=SC1091
+  source "$SCRIPT_DIR/.env.aws"
+  echo "[AWS Cloud] Loaded live AWS configuration from .env.aws (${AWS_DEFAULT_REGION:-ap-south-1})"
+fi
 
 cleanup() {
   echo ""
