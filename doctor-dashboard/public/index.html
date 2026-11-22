@@ -86,6 +86,10 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      max-width: 100%;
+      overflow-x: hidden;
+    }
     body {
       font-family: var(--font-sans);
       background: var(--bg-canvas);
@@ -202,11 +206,8 @@
     /* Application Layout */
     .app-layout {
       display: grid;
-      grid-template-columns: 232px 1fr;
+      grid-template-columns: 232px minmax(0, 1fr);
       min-height: 100vh;
-    }
-    @media (max-width: 960px) {
-      .app-layout { grid-template-columns: 1fr; }
     }
 
     /* Dark Clinical Navigation Rail */
@@ -221,6 +222,16 @@
       height: 100vh;
       border-right: 1px solid #1e293b;
       user-select: none;
+      z-index: 50;
+    }
+    .mobile-nav-backdrop {
+      display: none;
+    }
+    .mobile-menu-btn,
+    .mobile-drawer-close,
+    .mobile-bottom-nav,
+    .mobile-only-links {
+      display: none;
     }
     .rail-brand {
       padding: 16px 16px 14px;
@@ -229,11 +240,17 @@
     .rail-brand-row {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 9px;
       color: #ffffff;
       font-weight: 700;
       font-size: 14.5px;
       letter-spacing: -0.01em;
+    }
+    .rail-brand-title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
     }
     .brand-mark {
       width: 26px;
@@ -371,19 +388,27 @@
       display: flex;
       flex-direction: column;
       min-width: 0;
+      width: 100%;
     }
     .top-bar {
-      height: 52px;
+      min-height: 52px;
       background: var(--bg-surface);
       border-bottom: 1px solid var(--border);
-      padding: 0 24px;
+      padding: 8px 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 16px;
+      gap: 12px;
       position: sticky;
       top: 0;
       z-index: 40;
+    }
+    .top-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      flex: 1;
     }
     .breadcrumb {
       display: flex;
@@ -391,21 +416,72 @@
       gap: 8px;
       font-size: 13px;
       color: var(--text-muted);
+      min-width: 0;
+      flex: 1;
+    }
+    .breadcrumb-prefix {
+      white-space: nowrap;
+      flex-shrink: 0;
     }
     .breadcrumb strong {
       color: var(--text-primary);
       font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: block;
+      min-width: 0;
     }
     .top-bar-right {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
+      flex-shrink: 0;
     }
     .content-area {
       padding: 20px 24px 36px;
       max-width: 1480px;
       width: 100%;
       margin: 0 auto;
+      min-width: 0;
+    }
+
+    /* Responsive Layout Grid Helpers */
+    .detail-split-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr);
+      gap: 16px;
+    }
+    .sidebar-split-grid {
+      display: grid;
+      grid-template-columns: 350px minmax(0, 1fr);
+      gap: 16px;
+    }
+    .monitor-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+      gap: 14px;
+      padding: 16px;
+    }
+    .form-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .form-grid-2-1 {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 12px;
+    }
+    .form-grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+    .form-grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
     }
 
     /* Unified Telemetry Metric Strip (Replaces bloated KPI cards) */
@@ -735,6 +811,244 @@
       background: #450a0a;
       border-color: #dc2626;
     }
+
+    /* ==========================================================================
+       RESPONSIVE BREAKPOINTS (Tablet <= 960px & Mobile <= 640px)
+       Preserves 100% of desktop layout above 960px while transforming mobile
+       into an off-canvas drawer + bottom clinical navigation bar layout.
+       ========================================================================== */
+    @media (max-width: 960px) {
+      .app-layout {
+        display: block;
+        min-height: 100vh;
+      }
+      .nav-rail {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 276px;
+        max-width: 84vw;
+        height: 100dvh;
+        z-index: 950;
+        transform: translateX(-105%);
+        transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+        overflow-y: auto;
+        box-shadow: none;
+      }
+      .nav-rail.mobile-open {
+        transform: translateX(0);
+        box-shadow: 12px 0 32px rgba(0, 0, 0, 0.55);
+      }
+      .metric-strip {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+      }
+      .metric-cell {
+        padding: 10px 12px;
+      }
+      .mobile-nav-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(6, 10, 18, 0.65);
+        backdrop-filter: blur(2px);
+        z-index: 940;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+      }
+      .mobile-nav-backdrop.mobile-open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .mobile-menu-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 6px;
+        border: 1px solid var(--border-strong);
+        background: var(--bg-surface);
+        color: var(--text-primary);
+        cursor: pointer;
+        flex-shrink: 0;
+        position: relative;
+      }
+      .mobile-drawer-close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        border: 1px solid #334155;
+        background: rgba(255, 255, 255, 0.06);
+        color: #cbd5e1;
+        cursor: pointer;
+      }
+      .mobile-only-links {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #1e293b;
+      }
+      .detail-split-grid,
+      .sidebar-split-grid {
+        grid-template-columns: 1fr;
+      }
+      .top-bar {
+        padding: 8px 14px;
+      }
+      .content-area {
+        padding: 14px 14px 86px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .desktop-only-link {
+        display: none !important;
+      }
+      .breadcrumb-prefix {
+        display: none;
+      }
+      .mobile-bottom-nav {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background: var(--bg-sidebar);
+        border-top: 1px solid #1e293b;
+        z-index: 850;
+        padding: 4px 6px env(safe-area-inset-bottom, 4px);
+      }
+      .mobile-tab-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        border: none;
+        background: transparent;
+        color: #94a3b8;
+        font-size: 10.5px;
+        font-weight: 600;
+        cursor: pointer;
+        border-radius: 6px;
+        position: relative;
+        padding: 4px 2px;
+      }
+      .mobile-tab-btn.active {
+        color: #38bdf8;
+        background: rgba(56, 189, 248, 0.12);
+      }
+      .mobile-tab-badge {
+        position: absolute;
+        top: 2px;
+        right: calc(50% - 18px);
+        background: #dc2626;
+        color: #fff;
+        font-family: var(--font-mono);
+        font-size: 9.5px;
+        font-weight: 700;
+        padding: 0 4px;
+        border-radius: 8px;
+        line-height: 14px;
+        min-width: 14px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .auth-panel-wrap {
+        padding: 20px 16px;
+      }
+      .metric-strip {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .metric-cell {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+      }
+      .metric-cell:nth-child(2n) {
+        border-right: none;
+      }
+      .metric-cell:last-child:nth-child(odd) {
+        grid-column: 1 / -1;
+        border-bottom: none;
+      }
+      .metric-value {
+        font-size: 19px;
+      }
+      .vital-readout-strip {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .readout-tile {
+        padding: 10px 12px;
+        border-bottom: 1px solid #1e293b;
+      }
+      .readout-tile:nth-child(2n) {
+        border-right: none;
+      }
+      .readout-tile:last-child:nth-child(odd) {
+        grid-column: 1 / -1;
+        border-bottom: none;
+      }
+      .readout-number {
+        font-size: 24px !important;
+      }
+      .monitor-cards-grid {
+        grid-template-columns: 1fr;
+        padding: 12px;
+      }
+      .panel-toolbar {
+        padding: 10px 12px;
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .panel-toolbar > div {
+        width: 100%;
+      }
+      .panel-toolbar .input {
+        max-width: none !important;
+        width: 100% !important;
+      }
+      .segmented-group {
+        width: 100%;
+        overflow-x: auto;
+        justify-content: flex-start;
+      }
+      .seg-btn {
+        flex: 1 0 auto;
+        text-align: center;
+        white-space: nowrap;
+      }
+      .form-grid-2,
+      .form-grid-2-1,
+      .form-grid-3 {
+        grid-template-columns: 1fr;
+      }
+      .form-grid-4 {
+        grid-template-columns: 1fr 1fr;
+      }
+      .modal-backdrop {
+        padding: 12px;
+      }
+      .modal-card {
+        padding: 16px;
+        max-height: 92dvh;
+      }
+      #toast-container {
+        left: 12px;
+        right: 12px;
+        bottom: 70px;
+        max-width: none;
+      }
+    }
   </style>
 </head>
 <body>
@@ -743,8 +1057,9 @@
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
-    const API_BASE = urlParams.get('api') || localStorage.getItem('icu_cloud_api_url') || (window.location.protocol + '//' + window.location.hostname + ':8000/api');
-    const WS_ENDPOINT = urlParams.get('ws') || localStorage.getItem('icu_cloud_ws_url') || ((window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.hostname + ':8000/ws');
+    const isDirectBackendOrigin = window.location.port === '8000' || window.location.protocol === 'https:' || window.location.port === '';
+    const API_BASE = urlParams.get('api') || localStorage.getItem('icu_cloud_api_url') || (isDirectBackendOrigin ? (window.location.origin + '/api') : (window.location.protocol + '//' + window.location.hostname + ':8000/api'));
+    const WS_ENDPOINT = urlParams.get('ws') || localStorage.getItem('icu_cloud_ws_url') || (isDirectBackendOrigin ? ((window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + '/ws') : ((window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.hostname + ':8000/ws'));
 
     // Crisp 1.5px Stroke Clinical SVG Icon Library (No Emojis)
     const ICONS = {
@@ -762,14 +1077,26 @@
       arrowLeft: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>`,
       check: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
       external: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`,
-      moon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`
+      moon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`,
+      menu: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>`,
+      close: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`
     };
 
+    const DEFAULT_AUTOLOGIN_USER = urlParams.get('autologin') ? {
+      userId: 'USR-001',
+      username: 'sarah.smith',
+      fullName: 'Dr. Sarah Smith',
+      initials: 'DSS',
+      role: 'Doctor',
+      department: 'Cardiology ICU'
+    } : null;
+
     const STATE = {
-      user: JSON.parse(localStorage.getItem('icu_user') || 'null'),
-      activePage: 'dashboard',
-      selectedPatientId: 'PATIENT-001',
-      patientViewMode: 'table',
+      user: JSON.parse(localStorage.getItem('icu_user') || 'null') || DEFAULT_AUTOLOGIN_USER,
+      activePage: urlParams.get('page') || 'dashboard',
+      mobileMenuOpen: urlParams.get('drawer') === 'open',
+      selectedPatientId: urlParams.get('patient') || 'PATIENT-001',
+      patientViewMode: urlParams.get('view') || (window.innerWidth <= 640 ? 'cards' : 'table'),
       patientSearch: '',
       patientStatusFilter: 'ALL',
       patientSort: 'bed',
@@ -1254,18 +1581,18 @@
         <div style="font-size:16px;font-weight:700;margin-bottom:4px;">Admit Patient to ICU Telemetry</div>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">Register patient demographics and bind a bedside Raspberry Pi acquisition gateway.</div>
         <form onsubmit="event.preventDefault(); submitAdmitPatient(this);">
-          <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px;">
+          <div class="form-grid-2-1">
             <div class="field"><label>Patient Full Name</label><input class="input" name="patientName" placeholder="e.g., David Miller" required /></div>
             <div class="field"><label>Medical Record # (MRN)</label><input class="input tabular" name="mrn" value="MRN-${482910 + nextNum}" required /></div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;">
+          <div class="form-grid-4">
             <div class="field"><label>Age</label><input type="number" class="input tabular" name="age" value="56" required /></div>
             <div class="field"><label>Sex</label><select class="input" name="gender"><option value="M">M</option><option value="F">F</option></select></div>
             <div class="field"><label>Bed Assignment</label><input class="input tabular" name="bedNumber" value="ICU-0${nextNum}" required /></div>
             <div class="field"><label>Gateway Node</label><input class="input tabular" name="monitoringDeviceId" value="ICU-PI-00${nextNum}" required /></div>
           </div>
           <div class="field"><label>Primary Clinical Diagnosis</label><input class="input" name="condition" placeholder="Post-operative hemodynamic monitoring" required /></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-grid-2">
             <div class="field"><label>Attending Physician</label><input class="input" name="attendingPhysician" value="${STATE.user?.role === 'Doctor' ? STATE.user.fullName : 'Dr. Sarah Smith'}" required /></div>
             <div class="field"><label>Primary ICU Nurse</label><input class="input" name="primaryNurse" value="Nurse Michael Jones" required /></div>
           </div>
@@ -1311,7 +1638,7 @@
         <div style="font-size:16px;font-weight:700;margin-bottom:14px;">Update Clinical Chart — ${p.patientName} (${p.bedNumber})</div>
         <form onsubmit="event.preventDefault(); submitEditPatient('${p.patientId}', this);">
           <div class="field"><label>Primary Diagnosis / Condition</label><input class="input" name="condition" value="${p.condition}" required /></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-grid-2">
             <div class="field"><label>Attending Physician</label><input class="input" name="attendingPhysician" value="${p.attendingPhysician}" required /></div>
             <div class="field"><label>Primary Nurse</label><input class="input" name="primaryNurse" value="${p.primaryNurse}" required /></div>
           </div>
@@ -1463,12 +1790,18 @@
       ].filter(i => i.roles.includes(role));
 
       return `
-        <aside class="nav-rail">
+        <div class="mobile-nav-backdrop ${STATE.mobileMenuOpen ? 'mobile-open' : ''}" onclick="STATE.mobileMenuOpen=false; renderApp();"></div>
+        <aside class="nav-rail ${STATE.mobileMenuOpen ? 'mobile-open' : ''}">
           <div>
             <div class="rail-brand">
               <div class="rail-brand-row">
-                <span class="brand-mark">${ICONS.pulse}</span>
-                <span>ICUGuardian</span>
+                <div class="rail-brand-title">
+                  <span class="brand-mark">${ICONS.pulse}</span>
+                  <span>ICUGuardian</span>
+                </div>
+                <button type="button" class="mobile-drawer-close" onclick="STATE.mobileMenuOpen=false; renderApp();" aria-label="Close navigation">
+                  ${ICONS.close}
+                </button>
               </div>
               <div class="rail-telemetry-status">
                 <span style="display:flex;align-items:center;gap:6px;color:${hasIssues ? '#fbbf24' : '#cbd5e1'};">
@@ -1483,7 +1816,7 @@
               <div class="rail-section-label">Clinical Views</div>
               ${clinicalNav.map(item => `
                 <button class="rail-btn ${(STATE.activePage === item.id || (STATE.activePage === 'patient-detail' && item.id === 'dashboard')) ? 'active' : ''}"
-                        onclick="STATE.activePage='${item.id}'; renderApp();">
+                        onclick="STATE.activePage='${item.id}'; STATE.mobileMenuOpen=false; renderApp();">
                   <span class="rail-btn-left">${item.icon}<span>${item.label}</span></span>
                   ${item.badge ? `<span class="rail-count">${item.badge}</span>` : ''}
                 </button>
@@ -1492,7 +1825,7 @@
               <div class="rail-section-label" style="margin-top:8px;">Infrastructure & Admin</div>
               ${opsNav.map(item => `
                 <button class="rail-btn ${STATE.activePage === item.id ? 'active' : ''}"
-                        onclick="STATE.activePage='${item.id}'; renderApp();">
+                        onclick="STATE.activePage='${item.id}'; STATE.mobileMenuOpen=false; renderApp();">
                   <span class="rail-btn-left">${item.icon}<span>${item.label}</span></span>
                 </button>
               `).join('')}
@@ -1500,6 +1833,14 @@
           </div>
 
           <div class="rail-footer">
+            <div class="mobile-only-links">
+              <a href="http://${window.location.hostname}:3001" target="_blank" class="btn btn-xs" style="width:100%;justify-content:flex-start;background:#151f32;border-color:#26354d;color:#cbd5e1;text-decoration:none;">
+                ${ICONS.external}<span>Bedside Monitor (:3001)</span>
+              </a>
+              <a href="http://${window.location.hostname}:5050" target="_blank" class="btn btn-xs" style="width:100%;justify-content:flex-start;background:#151f32;border-color:#26354d;color:#cbd5e1;text-decoration:none;">
+                ${ICONS.external}<span>Pi 5 Gateway (:5050)</span>
+              </a>
+            </div>
             <div class="clinician-row">
               <div class="initials-badge">${STATE.user?.initials || 'DSS'}</div>
               <div style="overflow:hidden;">
@@ -1521,6 +1862,7 @@
 
     // TOP UTILITY BAR
     function renderTopBar() {
+      const unackCount = STATE.alerts.filter(a => !a.acknowledged && !a.resolved).length;
       const pageTitles = {
         'dashboard': 'ICU Ward A & B — Live Patient Census',
         'patient-detail': `Patient Telemetry Chart — ${STATE.selectedPatientId}`,
@@ -1533,16 +1875,21 @@
       };
       return `
         <header class="top-bar">
-          <div class="breadcrumb">
-            <span>Central Station</span>
-            <span>/</span>
-            <strong>${pageTitles[STATE.activePage] || 'Live Dashboard'}</strong>
+          <div class="top-bar-left">
+            <button type="button" class="mobile-menu-btn" onclick="STATE.mobileMenuOpen=!STATE.mobileMenuOpen; renderApp();" aria-label="Toggle navigation menu">
+              ${ICONS.menu}
+              ${unackCount > 0 ? `<span style="position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:#ef4444;"></span>` : ''}
+            </button>
+            <div class="breadcrumb">
+              <span class="breadcrumb-prefix">Central Station &nbsp;/</span>
+              <strong>${pageTitles[STATE.activePage] || 'Live Dashboard'}</strong>
+            </div>
           </div>
           <div class="top-bar-right">
-            <a href="http://${window.location.hostname}:3001" target="_blank" class="btn btn-xs" style="text-decoration:none;">
+            <a href="http://${window.location.hostname}:3001" target="_blank" class="btn btn-xs desktop-only-link" style="text-decoration:none;">
               ${ICONS.external}<span>Bedside Monitor (:3001)</span>
             </a>
-            <a href="http://${window.location.hostname}:5050" target="_blank" class="btn btn-xs" style="text-decoration:none;">
+            <a href="http://${window.location.hostname}:5050" target="_blank" class="btn btn-xs desktop-only-link" style="text-decoration:none;">
               ${ICONS.external}<span>Pi 5 Gateway (:5050)</span>
             </a>
             <button class="btn btn-xs" onclick="STATE.darkMode=!STATE.darkMode; localStorage.setItem('icu_dark_mode', STATE.darkMode); document.body.classList.toggle('dark-theme', STATE.darkMode); renderApp();">
@@ -1550,6 +1897,36 @@
             </button>
           </div>
         </header>
+      `;
+    }
+
+    function renderMobileBottomNav() {
+      const unackCount = STATE.alerts.filter(a => !a.acknowledged && !a.resolved).length;
+      const isCensus = STATE.activePage === 'dashboard' || STATE.activePage === 'patient-detail';
+      return `
+        <nav class="mobile-bottom-nav" aria-label="Mobile quick navigation">
+          <button type="button" class="mobile-tab-btn ${isCensus ? 'active' : ''}" onclick="STATE.activePage='dashboard'; STATE.mobileMenuOpen=false; renderApp();">
+            ${ICONS.grid}
+            <span>Census</span>
+          </button>
+          <button type="button" class="mobile-tab-btn ${STATE.activePage === 'alerts' ? 'active' : ''}" onclick="STATE.activePage='alerts'; STATE.mobileMenuOpen=false; renderApp();">
+            ${ICONS.bell}
+            <span>Alarms</span>
+            ${unackCount > 0 ? `<span class="mobile-tab-badge">${unackCount}</span>` : ''}
+          </button>
+          <button type="button" class="mobile-tab-btn ${STATE.activePage === 'devices' ? 'active' : ''}" onclick="STATE.activePage='devices'; STATE.mobileMenuOpen=false; renderApp();">
+            ${ICONS.cpu}
+            <span>Gateways</span>
+          </button>
+          <button type="button" class="mobile-tab-btn ${STATE.activePage === 'settings' ? 'active' : ''}" onclick="STATE.activePage='settings'; STATE.mobileMenuOpen=false; renderApp();">
+            ${ICONS.sliders}
+            <span>Settings</span>
+          </button>
+          <button type="button" class="mobile-tab-btn ${STATE.mobileMenuOpen ? 'active' : ''}" onclick="STATE.mobileMenuOpen=!STATE.mobileMenuOpen; renderApp();">
+            ${ICONS.menu}
+            <span>Menu</span>
+          </button>
+        </nav>
       `;
     }
 
@@ -1716,7 +2093,7 @@
             </div>
           ` : `
             <!-- Central Station Multi-Bed Telemetry Grid -->
-            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(350px,1fr));gap:14px;padding:16px;">
+            <div class="monitor-cards-grid">
               ${filtered.map(p => {
                 const v = p.vitals || {};
                 const bp = v.bloodPressure || { systolic: 120, diastolic: 80 };
@@ -1923,11 +2300,11 @@
           </div>
         </div>
 
-        <div style="display:grid;grid-template-columns:2.2fr 1fr;gap:16px;">
-          <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="detail-split-grid">
+          <div style="display:flex;flex-direction:column;gap:16px;min-width:0;">
             <!-- Live Sweeping Lead II ECG Canvas -->
             <div class="surface-panel" style="background:#060a12;border-color:#1e293b;padding:12px 14px;">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:11px;font-family:var(--font-mono);color:#94a3b8;">
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px;font-size:11px;font-family:var(--font-mono);color:#94a3b8;">
                 <span style="color:#10b981;font-weight:700;">LEAD II ECG WAVEFORM • 25 mm/s • 10 mm/mV • 0.5–40 Hz</span>
                 <span>EDGE NODE: ${p.monitoringDeviceId} (${p.deviceIp}) • ${p.deviceStatus}</span>
               </div>
@@ -2190,7 +2567,7 @@
     function renderReportsPage() {
       const rpt = STATE.activeReportPreview;
       return `
-        <div style="display:grid;grid-template-columns:360px 1fr;gap:16px;">
+        <div class="sidebar-split-grid">
           <div class="surface-panel" style="padding:18px;">
             <div style="font-size:14px;font-weight:700;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);">
               Clinical Report Parameters
@@ -2336,11 +2713,11 @@
         <div style="font-size:16px;font-weight:700;margin-bottom:14px;">Provision Clinician / Staff Account</div>
         <form onsubmit="event.preventDefault(); submitAddUserModal(this);">
           <div class="field"><label>Full Name & Credentials</label><input class="input" name="fullName" placeholder="Dr. Alex Rivera" required /></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-grid-2">
             <div class="field"><label>Directory Username</label><input class="input tabular" name="username" placeholder="alex.rivera" required /></div>
             <div class="field"><label>Initial Password</label><input type="password" class="input" name="password" value="hospital123" required /></div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-grid-2">
             <div class="field"><label>Access Role</label><select class="input" name="role"><option>Doctor</option><option>Nurse</option><option>Admin</option></select></div>
             <div class="field"><label>Clinical Unit</label><input class="input" name="department" value="Cardiology ICU" required /></div>
           </div>
@@ -2436,15 +2813,15 @@
       STATE.modalContent = `
         <div style="font-size:16px;font-weight:700;margin-bottom:14px;">Register Bedside Raspberry Pi 5 Gateway</div>
         <form onsubmit="event.preventDefault(); submitRegisterDevice(this);">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-grid-2">
             <div class="field"><label>Gateway Node ID</label><input class="input tabular" name="deviceId" value="ICU-PI-00${nextNum}" required /></div>
             <div class="field"><label>Hostname / Label</label><input class="input" name="deviceName" value="ICU-0${nextNum} Monitor Hub" required /></div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-grid-2">
             <div class="field"><label>Hospital Ward</label><input class="input" name="location" value="ICU Ward B" required /></div>
             <div class="field"><label>Static IPv4 (eth0)</label><input class="input tabular" name="ipAddress" value="192.168.1.${100 + nextNum}" required /></div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-grid-2">
             <div class="field"><label>Assigned Bed</label><input class="input tabular" name="bedNumber" value="ICU-0${nextNum}" required /></div>
             <div class="field"><label>Acquisition Mode</label><select class="input" name="operatingMode"><option value="BEDSIDE_MONITOR">BEDSIDE_MONITOR (LAN/HL7)</option><option value="HARDWARE">HARDWARE (I2C/SPI Sensors)</option></select></div>
           </div>
@@ -2726,10 +3103,10 @@
                 <button class="btn btn-xs btn-primary" onclick="saveThresholdSettings()">Save & Sync Thresholds</button>
               </div>
             </div>
-            <div style="padding:18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;">
+            <div style="padding:18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;">
               <div style="border:1px solid var(--border);border-radius:6px;padding:14px;">
                 <div style="font-weight:700;font-size:13px;margin-bottom:10px;">Heart Rate Limits (BPM)</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                <div class="form-grid-3">
                   <div class="field"><label>Lower Warn</label><input type="number" class="input tabular" value="${t.heartRate.minNormal}" onchange="STATE.thresholds.heartRate.minNormal=Number(this.value);STATE.unsavedSettings=true;renderApp();" /></div>
                   <div class="field"><label>Upper Warn</label><input type="number" class="input tabular" value="${t.heartRate.maxNormal}" onchange="STATE.thresholds.heartRate.maxNormal=Number(this.value);STATE.unsavedSettings=true;renderApp();" /></div>
                   <div class="field"><label>Upper Crit</label><input type="number" class="input tabular" value="${t.heartRate.criticalHigh}" onchange="STATE.thresholds.heartRate.criticalHigh=Number(this.value);STATE.unsavedSettings=true;renderApp();" /></div>
@@ -2738,7 +3115,7 @@
 
               <div style="border:1px solid var(--border);border-radius:6px;padding:14px;">
                 <div style="font-weight:700;font-size:13px;margin-bottom:10px;">Arterial SpO₂ & Core Temp</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                <div class="form-grid-3">
                   <div class="field"><label>SpO₂ Warn (%)</label><input type="number" class="input tabular" value="${t.spo2.minNormal}" onchange="STATE.thresholds.spo2.minNormal=Number(this.value);STATE.unsavedSettings=true;renderApp();" /></div>
                   <div class="field"><label>SpO₂ Crit (%)</label><input type="number" class="input tabular" value="${t.spo2.criticalLow}" onchange="STATE.thresholds.spo2.criticalLow=Number(this.value);STATE.unsavedSettings=true;renderApp();" /></div>
                   <div class="field"><label>Max Temp (°C)</label><input type="number" step="0.1" class="input tabular" value="${t.temperature.maxNormal}" onchange="STATE.thresholds.temperature.maxNormal=Number(this.value);STATE.unsavedSettings=true;renderApp();" /></div>
@@ -2747,7 +3124,7 @@
 
               <div style="border:1px solid var(--border);border-radius:6px;padding:14px;">
                 <div style="font-weight:700;font-size:13px;margin-bottom:10px;">NIBP & Respiratory Rate</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                <div class="form-grid-3">
                   <div class="field"><label>Sys Min</label><input type="number" class="input tabular" value="${t.bloodPressure.systolicMin}" onchange="STATE.thresholds.bloodPressure.systolicMin=Number(this.value);STATE.unsavedSettings=true;renderApp();" /></div>
                   <div class="field"><label>Sys Max</label><input type="number" class="input tabular" value="${t.bloodPressure.systolicMax}" onchange="STATE.thresholds.bloodPressure.systolicMax=Number(this.value);STATE.unsavedSettings=true;renderApp();" /></div>
                   <div class="field"><label>Resp Max (/m)</label><input type="number" class="input tabular" value="${t.respiratoryRate.maxNormal}" onchange="STATE.thresholds.respiratoryRate.maxNormal=Number(this.value);STATE.unsavedSettings=true;renderApp();" /></div>
@@ -2774,7 +3151,7 @@
             <button class="btn btn-xs" onclick="playMedicalAlarm('CRITICAL')">Test Critical Acoustic Sequence</button>
           </div>
         ` : STATE.settingsTab === 'privacy' ? `
-          <div style="display:grid;grid-template-columns:340px 1fr;gap:16px;">
+          <div class="sidebar-split-grid">
             <div class="surface-panel" style="padding:18px;">
               <div style="font-weight:700;font-size:13.5px;margin-bottom:12px;">Rotate Clinician Password</div>
               <form onsubmit="event.preventDefault(); handlePasswordChange(this);">
@@ -2784,7 +3161,7 @@
                 <button type="submit" class="btn btn-primary" style="width:100%;">Update PBKDF2 Hash</button>
               </form>
             </div>
-            <div class="surface-panel">
+            <div class="surface-panel" style="min-width:0;">
               <div class="panel-toolbar"><span class="panel-title">Immutable Clinical & Security Audit Trail</span></div>
               <div class="table-scroll" style="max-height:360px;overflow-y:auto;">
                 <table>
@@ -2807,7 +3184,7 @@
         ` : `
           <div class="surface-panel" style="padding:18px;">
             <div style="font-weight:700;font-size:13.5px;margin-bottom:14px;">Cloud & Edge Telemetry Endpoints</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div class="form-grid-2">
               <div class="field"><label>AWS IoT Core MQTT Broker</label><input class="input tabular" value="iot.us-east-1.amazonaws.com:8883 (TLSv1.2 X.509)" readonly /></div>
               <div class="field"><label>Real-Time WebSocket Stream</label><input class="input tabular" value="${WS_ENDPOINT}" readonly /></div>
               <div class="field"><label>REST API Endpoint</label><input class="input tabular" value="${API_BASE}" readonly /></div>
@@ -2848,14 +3225,14 @@
 
     function renderHelpPage() {
       return `
-        <div style="display:grid;grid-template-columns:360px 1fr;gap:16px;">
+        <div class="sidebar-split-grid">
           <div class="surface-panel" style="padding:18px;">
             <div style="font-weight:700;font-size:13.5px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border);">
               Log Clinical Engineering Work Order
             </div>
             <form onsubmit="event.preventDefault(); handleTicketSubmit(this);">
               <div class="field"><label>Issue Summary</label><input class="input" name="subject" placeholder="e.g., SpO2 optical probe calibration on ICU-02" required /></div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div class="form-grid-2">
                 <div class="field"><label>Urgency</label><select class="input" name="priority"><option>Medium</option><option>High</option><option>Low</option></select></div>
                 <div class="field"><label>Subsystem</label><select class="input" name="category"><option>Hardware</option><option>Technical</option><option>Network</option></select></div>
               </div>
@@ -2927,6 +3304,7 @@
             </main>
           </div>
         </div>
+        ${renderMobileBottomNav()}
         ${STATE.modalContent ? `
           <div class="modal-backdrop">
             <div class="modal-card">${STATE.modalContent}</div>

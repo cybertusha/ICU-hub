@@ -2032,6 +2032,41 @@ async def app(scope, receive, send):
         return
 
     try:
+        if path in ("/", "/index.html") and method == "GET":
+            html_path = Path(__file__).resolve().parent.parent / "doctor-dashboard" / "public" / "index.html"
+            if html_path.exists():
+                body = html_path.read_bytes()
+                await send(
+                    {
+                        "type": "http.response.start",
+                        "status": 200,
+                        "headers": [
+                            (b"content-type", b"text/html; charset=utf-8"),
+                            (b"cache-control", b"no-cache"),
+                            (b"content-length", str(len(body)).encode("ascii")),
+                        ],
+                    }
+                )
+                await send({"type": "http.response.body", "body": body})
+                return
+
+        if path == "/manifest.json" and method == "GET":
+            manifest_path = Path(__file__).resolve().parent.parent / "doctor-dashboard" / "public" / "manifest.json"
+            if manifest_path.exists():
+                body = manifest_path.read_bytes()
+                await send(
+                    {
+                        "type": "http.response.start",
+                        "status": 200,
+                        "headers": [
+                            (b"content-type", b"application/manifest+json; charset=utf-8"),
+                            (b"content-length", str(len(body)).encode("ascii")),
+                        ],
+                    }
+                )
+                await send({"type": "http.response.body", "body": body})
+                return
+
         if path in ("/health", "/api/health"):
             await send_json_response(
                 send,
