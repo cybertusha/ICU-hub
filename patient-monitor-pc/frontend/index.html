@@ -414,6 +414,39 @@
         const res = await fetch('/api/simulator/state?patientId=' + encodeURIComponent(currentPatientId));
         if (!res.ok) return;
         const data = await res.json();
+
+        const sel = document.getElementById('patient-select');
+        const roster = data.patients || [];
+        const sig = roster.map(p => `${p.patientId}:${p.bedNumber}:${p.patientName}:${p.deviceId}`).join('|');
+        if (sel.dataset.rosterSig !== sig) {
+          sel.dataset.rosterSig = sig;
+          if (roster.length === 0) {
+            sel.innerHTML = `<option value="">No Admitted Patients — Admit on Doctor Dashboard (:3000)</option>`;
+          } else {
+            sel.innerHTML = roster.map(p =>
+              `<option value="${p.patientId}">${p.bedNumber} — ${p.patientName} (${p.deviceId})</option>`
+            ).join('');
+          }
+        }
+
+        if (data.empty) {
+          document.getElementById('patient-name').textContent = 'No Active ICU Patient';
+          document.getElementById('patient-bed').textContent = 'STANDBY';
+          document.getElementById('patient-id-label').textContent = 'Admit a patient on Doctor Dashboard (:3000)';
+          document.getElementById('val-hr').textContent = '--';
+          document.getElementById('val-spo2').textContent = '--';
+          document.getElementById('val-temp').textContent = '--.-';
+          document.getElementById('val-rr').textContent = '--';
+          document.getElementById('val-bp').textContent = '---/--';
+          document.getElementById('val-map').textContent = 'MAP -- mmHg';
+          return;
+        }
+
+        currentPatientId = data.patientId;
+        if (sel.value !== currentPatientId) {
+          sel.value = currentPatientId;
+        }
+
         document.getElementById('patient-name').textContent = data.patientName;
         document.getElementById('patient-bed').textContent = data.bedNumber;
         document.getElementById('patient-id-label').textContent = `${data.patientId} • GATEWAY ${data.deviceId}`;

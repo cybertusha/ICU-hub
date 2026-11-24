@@ -10,6 +10,7 @@ import os
 import sys
 import threading
 import time
+import urllib.request
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from pathlib import Path
@@ -18,7 +19,8 @@ sys.path.insert(0, str(Path(__file__).parent / "simulator"))
 from patient_simulator import BedsidePatientSimulator, SCENARIOS
 
 PORT = int(os.environ.get("MONITOR_PORT", "3001"))
-GATEWAY_URL = os.environ.get("GATEWAY_URL", "http://127.0.0.1:5050/gateway/telemetry")
+GATEWAY_URL = os.environ.get("GATEWAY_TELEMETRY_URL") or os.environ.get("GATEWAY_URL", "http://127.0.0.1:5050/gateway/telemetry")
+CLOUD_BACKEND_URL = os.environ.get("CLOUD_BACKEND_URL", "http://127.0.0.1:8000")
 FRONTEND_HTML = Path(__file__).parent / "frontend" / "index.html"
 
 PATIENT_DEFINITIONS = [
@@ -54,6 +56,72 @@ class SimulatorRuntime:
             self.simulators[p["patientId"]] = sim
             self.latest_readings[p["patientId"]] = sim.next_reading()
 
+    def sync_with_cloud_patients(self) -> None:
+        """
+        Fetches the live patient census from Cloud Backend (:8000/api/patients) so that
+        admitting, editing, or discharging a patient on the Doctor Dashboard immediately
+        updates the Bedside ICU Multiparameter Monitor (:3001).
+        """
+        try:
+            req = urllib.request.Request(f"{CLOUD_BACKEND_URL}/api/patients", method="GET")
+            with urllib.request.urlopen(req, timeout=1.2) as resp:
+                if resp.status != 200:
+                    return
+                data = json.loads(resp.read().decode("utf-8"))
+                cloud_patients = data.get("patients", [])
+        except Exception:
+            return
+
+        with self.lock:
+            cloud_ids = set()
+            for cp in cloud_patients:
+                pid = cp.get("patientId")
+                if not pid:
+                    continue
+                cloud_ids.add(pid)
+                pname = cp.get("patientName", "ICU Patient")
+                bed = cp.get("bedNumber", "ICU-01")
+                dev_id = cp.get("monitoringDeviceId", "ICU-PI-001")
+                if pid not in self.simulators:
+                    sim = BedsidePatientSimulator(
+                        patient_id=pid,
+                        device_id=dev_id,
+                        patient_name=pname,
+                        bed_number=bed,
+                        scenario="NORMAL",
+                    )
+                    self.simulators[pid] = sim
+                    self.latest_readings[pid] = sim.next_reading()
+                else:
+                    sim = self.simulators[pid]
+                    sim.patient_name = pname
+                    sim.bed_number = bed
+                    sim.device_id = dev_id
+
+            # Remove discharged patients
+            for existing_id in list(self.simulators.keys()):
+                if existing_id not in cloud_ids:
+                    del self.simulators[existing_id]
+                    self.latest_readings.pop(existing_id, None)
+
+            if self.simulators:
+                if self.active_patient_id not in self.simulators:
+                    self.active_patient_id = next(iter(self.simulators.keys()))
+            else:
+                self.active_patient_id = ""
+
+    def list_patient_Roster(self):
+        return [
+            {
+                "patientId": sim.patient_id,
+                "patientName": sim.patient_name,
+                "bedNumber": sim.bed_number,
+                "deviceId": sim.device_id,
+                "scenario": sim.scenario,
+            }
+            for sim in sorted(self.simulators.values(), key=lambda s: s.bed_number)
+        ]
+
     def evaluate_status(self, vitals: dict) -> str:
         hr = vitals["heartRate"]
         spo2 = vitals["spo2"]
@@ -66,8 +134,9 @@ class SimulatorRuntime:
         return "NORMAL"
 
     def step_all(self):
+        self.sync_with_cloud_patients()
         with self.lock:
-            if not self.running:
+            if not self.running or not self.simulators:
                 return
             readings_to_send = []
             for pid, sim in self.simulators.items():
@@ -130,27 +199,63 @@ class MonitorHTTPHandler(BaseHTTPRequestHandler):
             return
 
         if parsed.path == "/api/simulator/state":
+            RUNTIME.sync_with_cloud_patients()
             qs = parse_qs(parsed.query)
-            pid = qs.get("patientId", [RUNTIME.active_patient_id])[0]
+            requested_pid = qs.get("patientId", [""])[0]
             with RUNTIME.lock:
-                sim = RUNTIME.simulators.get(pid) or RUNTIME.simulators["PATIENT-001"]
-                reading = RUNTIME.latest_readings[sim.patient_id]
-                status = RUNTIME.evaluate_status(reading["vitals"])
-                payload = {
-                    "patientId": sim.patient_id,
-                    "patientName": sim.patient_name,
-                    "bedNumber": sim.bed_number,
-                    "deviceId": sim.device_id,
-                    "scenario": sim.scenario,
-                    "running": RUNTIME.running,
-                    "monitoringStatus": status,
-                    "timestamp": reading["timestamp"],
-                    "vitals": reading["vitals"],
-                    "packetsSent": RUNTIME.packets_sent,
-                    "gatewayStatus": RUNTIME.gateway_status,
-                    "cloudConnected": RUNTIME.cloud_connected,
-                    "offlineQueueSize": RUNTIME.offline_queue_size,
-                }
+                roster = RUNTIME.list_patient_Roster()
+                if not RUNTIME.simulators:
+                    payload = {
+                        "empty": True,
+                        "patients": [],
+                        "patientId": "NONE",
+                        "patientName": "No Admitted Patient",
+                        "bedNumber": "STANDBY",
+                        "deviceId": "ICU-PI-001",
+                        "scenario": "NORMAL",
+                        "running": False,
+                        "monitoringStatus": "STANDBY",
+                        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                        "vitals": {
+                            "heartRate": 0,
+                            "spo2": 0,
+                            "temperature": 0.0,
+                            "respiratoryRate": 0,
+                            "bloodPressure": {"systolic": 0, "diastolic": 0},
+                            "ecg": [],
+                        },
+                        "packetsSent": RUNTIME.packets_sent,
+                        "gatewayStatus": RUNTIME.gateway_status,
+                        "cloudConnected": RUNTIME.cloud_connected,
+                        "offlineQueueSize": RUNTIME.offline_queue_size,
+                    }
+                else:
+                    sim = (
+                        RUNTIME.simulators.get(requested_pid)
+                        or RUNTIME.simulators.get(RUNTIME.active_patient_id)
+                        or next(iter(RUNTIME.simulators.values()))
+                    )
+                    RUNTIME.active_patient_id = sim.patient_id
+                    reading = RUNTIME.latest_readings.get(sim.patient_id) or sim.next_reading()
+                    RUNTIME.latest_readings[sim.patient_id] = reading
+                    status = RUNTIME.evaluate_status(reading["vitals"])
+                    payload = {
+                        "empty": False,
+                        "patients": roster,
+                        "patientId": sim.patient_id,
+                        "patientName": sim.patient_name,
+                        "bedNumber": sim.bed_number,
+                        "deviceId": sim.device_id,
+                        "scenario": sim.scenario,
+                        "running": RUNTIME.running,
+                        "monitoringStatus": status,
+                        "timestamp": reading["timestamp"],
+                        "vitals": reading["vitals"],
+                        "packetsSent": RUNTIME.packets_sent,
+                        "gatewayStatus": RUNTIME.gateway_status,
+                        "cloudConnected": RUNTIME.cloud_connected,
+                        "offlineQueueSize": RUNTIME.offline_queue_size,
+                    }
             self._send_json(200, payload)
             return
 

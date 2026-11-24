@@ -574,8 +574,8 @@ class CloudDatabaseManager:
                         seed_users,
                     )
 
-                # 3. Seed 6 Active ICU Patients
-                if conn.execute("SELECT COUNT(*) FROM patients").fetchone()[0] == 0:
+                # 3. Seed 6 Active ICU Patients (only on initial DB creation)
+                if conn.execute("SELECT COUNT(*) FROM patients").fetchone()[0] == 0 and conn.execute("SELECT COUNT(*) FROM audit_logs").fetchone()[0] == 0:
                     seed_patients = [
                         {
                             "patientId": "PATIENT-001",
@@ -1307,14 +1307,22 @@ class CloudDatabaseManager:
         with self.lock:
             conn = self._connect()
             try:
-                cnt = conn.execute("SELECT COUNT(*) FROM patients").fetchone()[0]
-                pid = data.get("patientId") or f"PATIENT-{cnt + 1:03d}"
-                mrn = data.get("mrn") or f"MRN-{482910 + cnt + 1}"
+                existing_rows = conn.execute("SELECT patientId FROM patients").fetchall()
+                max_num = 0
+                for r in existing_rows:
+                    raw_id = str(r["patientId"])
+                    if raw_id.startswith("PATIENT-"):
+                        suffix = raw_id.replace("PATIENT-", "")
+                        if suffix.isdigit():
+                            max_num = max(max_num, int(suffix))
+                next_num = max_num + 1
+                pid = data.get("patientId") or f"PATIENT-{next_num:03d}"
+                mrn = data.get("mrn") or f"MRN-{482910 + next_num}"
                 name = data.get("patientName", "New ICU Patient").strip()
                 age = int(data.get("age", 50))
                 gender = data.get("gender", "M")
-                bed = data.get("bedNumber") or f"ICU-{cnt + 1:02d}"
-                dev_id = data.get("monitoringDeviceId") or f"ICU-PI-{cnt + 1:03d}"
+                bed = data.get("bedNumber") or f"ICU-{next_num:02d}"
+                dev_id = data.get("monitoringDeviceId") or f"ICU-PI-{next_num:03d}"
                 cond = data.get("condition", "ICU hemodynamic observation")
                 doc = data.get("attendingPhysician", "Dr. Sarah Smith")
                 nurse = data.get("primaryNurse", "Nurse Michael Jones")
@@ -1336,7 +1344,7 @@ class CloudDatabaseManager:
 
                 conn.execute(
                     """
-                    INSERT INTO patients
+                    INSERT OR REPLACE INTO patients
                     (patientId, mrn, patientName, age, gender, bedNumber, monitoringDeviceId,
                      monitoringStatus, condition, attendingPhysician, primaryNurse,
                      allergies, currentMedications, careNotes, alertsEnabled, admittedAt,
@@ -1361,6 +1369,22 @@ class CloudDatabaseManager:
                         now_iso,
                         now_iso,
                     ),
+                )
+                # Ensure the assigned gateway device exists and is linked to this patient & bed
+                conn.execute(
+                    """
+                    INSERT OR IGNORE INTO devices
+                    (deviceId, deviceName, deviceType, location, ipAddress, macAddress, deviceStatus,
+                     uptime, lastSeen, firmwareVersion, operatingMode, assignedPatientId,
+                     bedNumber, offlineQueueSize, cpuTempC, cpuUsagePct, memoryUsagePct, latencyMs, createdAt)
+                    VALUES (?, ?, 'raspberry-pi', 'ICU Ward A', '192.168.50.1', 'DC:A6:32:4F:11:01', 'ONLINE',
+                            '1d 0h', ?, '2.1.0-prod', 'BEDSIDE_MONITOR', ?, ?, 0, 43.2, 14.0, 34.0, 4.2, ?)
+                    """,
+                    (dev_id, f"{bed} Monitor Hub", now_iso, pid, bed, now_iso),
+                )
+                conn.execute(
+                    "UPDATE devices SET assignedPatientId = ?, bedNumber = ?, deviceStatus = 'ONLINE', lastSeen = ? WHERE deviceId = ?",
+                    (pid, bed, now_iso, dev_id),
                 )
                 conn.commit()
             finally:
